@@ -29,6 +29,9 @@ src/
 ├── shaders/        # Custom GLSL shaders
 ├── App.tsx         # Main app layout
 └── main.tsx        # Vite entry point
+memory-bank/        # Project documentation and planning
+├── PRD.md          # Product requirements document
+└── plan.md         # Development roadmap and milestone tracking
 ```
 
 ## 🛠️ Getting Started
