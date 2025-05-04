@@ -40,6 +40,11 @@ src/
 
 ### Installation
 
+1. Click the "Use this template" button at the top of this repository
+2. Create a new repository from the template
+
+Or clone manually:
+
 ```bash
 # Clone the repository
 git clone https://github.com/vltansky/wow-vibe-coding.git
@@ -91,32 +96,6 @@ These MCPs enable:
 - Automated testing and browser control
 - Enhanced development workflows through AI understanding of specific domains
 
-## 🎮 Development Guidelines
-
-### Three.js Best Practices
-
-- Use **PascalCase** for Three.js classes
-- Use **camelCase** for instances, variables, and functions
-- Separate concerns (scene setup, asset loading, animations)
-- Always clean up resources with `.dispose()`
-- Use delta time for animations
-- Optimize geometries, textures, and materials
-
-### React Integration
-
-- Use `useEffect` for Three.js setup/teardown
-- Use `useRef` for stable references to Three.js objects
-- Separate Three.js logic from React component rendering
-- Use React state for UI-related states only
-
-### Performance Tips
-
-- Use InstancedMesh for multiple similar objects
-- Share materials and geometries
-- Implement object pooling for frequently created/destroyed objects
-- Profile memory usage
-- Implement adaptive quality based on performance
-
 ## 📚 Documentation
 
 - [Three.js Documentation](https://threejs.org/docs/)
@@ -124,21 +103,6 @@ These MCPs enable:
 - [shadcn/ui Documentation](https://ui.shadcn.com)
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs)
 - [Vite Documentation](https://vitejs.dev/guide/)
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- [Three.js](https://threejs.org/)
-- [React Three Fiber](https://github.com/pmndrs/react-three-fiber)
-- [shadcn/ui](https://ui.shadcn.com/)
-- [Vite](https://vitejs.dev/)
 
 # **Three.js Game Asset Resources**
 
