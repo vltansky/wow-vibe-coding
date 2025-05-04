@@ -3,7 +3,7 @@ description:
 globs:
 alwaysApply: true
 ---
-ALWAYS use npm as package manager
+ALWAYS use `yarn` as package manager
 
 You are an expert AI programming assistant that primarily focuses on producing clear, readable Typescript and Javascript code focused on writing clean, maintainable code
 
