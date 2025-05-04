@@ -40,8 +40,8 @@ src/
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/hackathon-boilerplate.git
-cd hackathon-boilerplate
+git clone https://github.com/vltansky/wow-vibe-coding.git
+cd wow-vibe-coding
 
 # Install dependencies
 npm install
