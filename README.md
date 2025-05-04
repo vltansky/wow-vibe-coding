@@ -36,7 +36,7 @@ src/
 ### Prerequisites
 
 - Node.js (v18+)
-- npm or yarn
+- yarn
 
 ### Installation
 
@@ -46,8 +46,6 @@ git clone https://github.com/vltansky/wow-vibe-coding.git
 cd wow-vibe-coding
 
 # Install dependencies
-npm install
-# or
 yarn
 ```
 
@@ -55,8 +53,6 @@ yarn
 
 ```bash
 # Start dev server
-npm run dev
-# or
 yarn dev
 ```
 
@@ -64,8 +60,6 @@ yarn dev
 
 ```bash
 # Build for production
-npm run build
-# or
 yarn build
 ```
 
@@ -75,10 +69,10 @@ The project uses Prettier for consistent code formatting. Formatting will automa
 
 ```bash
 # Format all files
-npm run format
+yarn format
 
 # Check if files are formatted correctly
-npm run format:check
+yarn format:check
 ```
 
 #### Tailwind Class Sorting
