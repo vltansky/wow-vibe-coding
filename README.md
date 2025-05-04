@@ -75,19 +75,21 @@ yarn format
 yarn format:check
 ```
 
-#### Tailwind Class Sorting
+## 🔌 Cursor: Model Context Protocol (MCP)
 
-Tailwind classes are automatically sorted using the official `prettier-plugin-tailwindcss` plugin. This ensures consistent class ordering across all files, which improves readability and maintainability.
+The project leverages Model Context Protocol (MCP) for enhanced AI-assisted development. MCPs provide contextual understanding and specialized tools for different aspects of development:
 
-The classes are sorted in the following logical order:
+- **Three.js MCP**: Provides AI-assisted access to Three.js documentation, examples, and best practices
+- **Cannon-es MCP**: Offers physics-related documentation and implementation guidance
+- **Context7**: Advanced code context analysis and documentation lookup
+- **Playwright MCP**: Browser automation and testing capabilities
 
-- Layout (position, display, etc.)
-- Sizing (width, height)
-- Spacing (margin, padding)
-- Typography (font, text)
-- Visual styling (colors, backgrounds)
-- Interactive states (hover, focus)
-- Responsive breakpoints (sm, md, lg)
+These MCPs enable:
+
+- AI-powered documentation assistance
+- Contextual code suggestions
+- Automated testing and browser control
+- Enhanced development workflows through AI understanding of specific domains
 
 ## 🎮 Development Guidelines
 
