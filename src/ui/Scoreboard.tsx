@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 
 export function Scoreboard() {
   const players = useGameStore((state) => state.players);
-  const currentKingId = useGameStore((state) => state.currentKingId);
   const gameWinner = useGameStore((state) => state.gameWinner);
   const localPlayerId = useGameStore((state) => state.localPlayerId);
   const resetScores = useGameStore((state) => state.resetScores);
