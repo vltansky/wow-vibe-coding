@@ -1,6 +1,7 @@
 import { useGameStore } from '../lib/gameStore';
 import FlorentinMinigame from '../components/levels/FlorentinMinigame';
 import OldNorthMinigame from '../components/levels/OldNorthMinigame';
+import TayeletMinigame from '../components/levels/TayeletMinigame';
 
 type MinigameContainerProps = {
   onWin: () => void;
@@ -22,6 +23,8 @@ const MinigameContainer = ({ onWin, onLose }: MinigameContainerProps) => {
   switch (selectedNeighborhood) {
     case 'Old North':
       return <OldNorthMinigame onWin={handleWin} onLose={onLose} />;
+    case 'tayelet':
+      return <TayeletMinigame onWin={handleWin} onLose={onLose} />;
     case 'Florentin':
     default:
       // Default to Florentin for MVP or if neighborhood is not selected

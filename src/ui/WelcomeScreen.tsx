@@ -21,6 +21,18 @@ const characters = [
     description: 'Traditional with classic style and wisdom',
     imagePath: '/YEMANI.PNG',
   },
+  {
+    id: 'nevorish',
+    name: 'Nevorish from Old North',
+    description: 'Slick real estate mogul with keys and phone',
+    imagePath: '/NEVORISH.png',
+  },
+  {
+    id: 'mom',
+    name: 'Mom from Park Hamesila',
+    description: 'Trendy mom with stroller and coffee',
+    imagePath: '/MOM.png',
+  },
 ];
 
 type Character = (typeof characters)[number];

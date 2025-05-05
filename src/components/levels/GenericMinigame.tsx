@@ -33,6 +33,8 @@ const characterImages = {
   nimrod: '/HIP.PNG',
   liat: '/POSH.png',
   reuven: '/YEMANI.PNG',
+  nevorish: '/NEVORISH.png',
+  mom: '/MOM.png',
 };
 
 export default function GenericMinigame({
@@ -292,8 +294,8 @@ export default function GenericMinigame({
 
     // Game instruction text
     ctx.fillStyle = '#333';
-    ctx.font = Math.floor(canvasSize.width / 20) + 'px sans-serif';
-    ctx.fillText(theme.instructionText, 16, 32);
+    ctx.font = Math.floor(canvasSize.width / 40) + 'px avenir';
+    ctx.fillText(theme.instructionText, 10, 100);
   }, [enemies, playerX, collectible, selectedCharacter, canvasSize]);
 
   // Game loop with background scrolling
@@ -393,6 +395,7 @@ export default function GenericMinigame({
         left: 0,
         background: '#f5f5dc',
         zIndex: 1000,
+        cursor: 'none',
       }}
     >
       <canvas

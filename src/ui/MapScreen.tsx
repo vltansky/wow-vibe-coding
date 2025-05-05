@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react';
 import { useGameStore } from '../lib/gameStore';
 import { MAPTILER_API_KEY } from '../private/apiKeys';
 
-const TEL_AVIV_CENTER = [32.0853, 34.7818];
-const ZOOM = 14;
+const TEL_AVIV_CENTER = [31.0853, 34.7818];
+const ZOOM = 14.2;
 
 const TEL_AVIV_BOUNDS = [
   [32.078, 34.77], // southWest (lat, lng)
@@ -12,13 +12,13 @@ const TEL_AVIV_BOUNDS = [
 
 const AREA_TO_MINIGAME: Record<string, string> = {
   Florentin: 'Florentin',
-  'Old North': 'Old North',
+  oldNorth: 'Old North',
   Kerem: 'Kerem',
   'Park Hamesila': 'parkHaMesilah',
   Kaplan: 'kaplan',
   Rothschild: 'rothschild',
   "Neve Sha'anan": 'tahanaMerkazit',
-  'Beach/Tayelet': 'tayelet',
+  tayelet: 'tayelet',
 };
 
 export function MapScreen() {
@@ -136,13 +136,13 @@ export function MapScreen() {
                 click: () => {
                   const validNeighborhoods = [
                     'Florentin',
-                    'Old North',
+                    'oldNorth',
                     'Kerem',
                     'Park Hamesila',
                     'Kaplan',
                     'Rothschild',
                     "Neve Sha'anan",
-                    'Beach/Tayelet',
+                    'tayelet',
                     'Neve Tzedek',
                     'Memadion',
                   ];
