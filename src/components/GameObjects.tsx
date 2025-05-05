@@ -1,21 +1,48 @@
+import { useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useRef } from 'react';
-import { Mesh } from 'three';
+import { Player } from './Player';
+import { GameMap } from './GameMap';
+import { useGameStore } from '@/stores/gameStore';
+import { usePlayerControls } from '@/hooks/usePlayerControls';
+import { useFollowCamera } from '@/hooks/useFollowCamera';
+import { initPhysics, updatePhysics, cleanupPhysics } from '@/systems/physics';
 
 export function GameObjects() {
-  const boxRef = useRef<Mesh>(null);
+  // Get game state
+  const players = useGameStore((state) => state.players);
+  const localPlayerId = useGameStore((state) => state.localPlayerId);
 
-  useFrame((state, delta) => {
-    if (boxRef.current) {
-      boxRef.current.rotation.x += delta;
-      boxRef.current.rotation.y += delta * 0.5;
-    }
+  // Initialize player controls
+  usePlayerControls();
+
+  // Initialize follow camera
+  useFollowCamera();
+
+  // Initialize physics
+  useEffect(() => {
+    // Initialize physics system
+    initPhysics();
+
+    // Clean up
+    return () => {
+      cleanupPhysics();
+    };
+  }, []);
+
+  // Update physics each frame
+  useFrame((_, delta) => {
+    updatePhysics(delta);
   });
 
   return (
-    <mesh ref={boxRef}>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="#f00" />
-    </mesh>
+    <>
+      {/* Game map with boundaries, surfaces and obstacles */}
+      <GameMap />
+
+      {/* Render all players */}
+      {Object.values(players).map((player) => (
+        <Player key={player.id} player={player} isLocal={player.id === localPlayerId} />
+      ))}
+    </>
   );
 }

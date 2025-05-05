@@ -13,18 +13,23 @@
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.0",
-    "@react-three/drei": "^9.99.0",
+    "@react-three/drei": "^10.0.7",
     "@react-three/fiber": "^8.15.16",
     "@tailwindcss/vite": "^4.1.5",
+    "@types/simple-peer": "^9.11.8",
     "@types/three": "^0.161.2",
     "cannon-es": "^0.20.0",
+    "cannon-es-debugger": "^1.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.507.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "simple-peer": "^9.11.1",
+    "socket.io-client": "^4.8.1",
     "tailwind-merge": "^3.2.0",
-    "three": "^0.161.0"
+    "three": "^0.161.0",
+    "zustand": "^5.0.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
