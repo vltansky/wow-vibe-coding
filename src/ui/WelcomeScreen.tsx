@@ -45,81 +45,59 @@ export function WelcomeScreen() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center bg-gradient-to-br from-yellow-100 to-blue-200 p-6">
-      <h1 className="mb-4 text-4xl font-bold">Welcome to Tel Aviv Escape!</h1>
-      <p className="mb-6 max-w-xl text-center text-lg">
+    <div className="relative flex min-h-screen flex-col items-center bg-gradient-to-br from-yellow-100 to-blue-200 p-6">
+      {/* Title and intro with Kanisah font */}
+      <h1 className="mb-4 text-5xl font-bold" style={{ fontFamily: 'Kanisah, sans-serif' }}>
+        Welcome to Tel Aviv Escape!
+      </h1>
+
+      <p className="mb-10 max-w-xl text-center text-lg">
         Choose your player and get ready to explore Tel Aviv's quirkiest neighborhoods. Complete all
         areas to win a Wolt delivery! You have 5 hearts. Lose them all and it's game over. Collect
         hummus or falafel to restore hearts. Avoid enemies unique to each area. Good luck!
       </p>
 
-      <div className="flex w-full max-w-5xl flex-col justify-between gap-8 md:flex-row">
-        {/* Left side - Character selection icons in grid */}
-        <div className="flex flex-col md:w-1/3">
-          <h2 className="mb-4 text-xl font-semibold">Choose your character:</h2>
-          <div className="grid grid-cols-3 gap-2">
-            {characters.map((char) => (
-              <button
-                key={char.id}
-                className={`flex aspect-square items-center justify-center overflow-hidden rounded-md bg-slate-800 p-1 transition-all hover:ring-2 hover:ring-yellow-400 ${
-                  selected?.id === char.id ? 'ring-2 ring-yellow-400' : ''
-                }`}
-                onClick={() => setSelected(char)}
-                type="button"
-              >
-                <div
-                  className="relative h-full w-full overflow-hidden"
-                  style={{ background: 'radial-gradient(circle, #4a4a4a 0%, #1a1a1a 100%)' }}
-                >
-                  <img
-                    src={char.imagePath}
-                    alt={char.name}
-                    className="h-full w-full object-cover"
-                    style={{
-                      objectPosition: 'top left',
-                      transform: 'scale(2)',
-                      top: '50%',
-                      left: '10%',
-                      position: 'relative',
-                    }}
-                  />
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* Character carousel - responsive for mobile */}
+      <div className="mb-8 flex w-full flex-col justify-center gap-16 md:flex-row md:gap-10">
+        {characters.map((char) => (
+          <div
+            key={char.id}
+            className={`relative flex transform cursor-pointer flex-col items-center transition-all duration-300 ${
+              selected?.id === char.id ? 'scale-110' : 'scale-90 opacity-70 hover:opacity-90'
+            }`}
+            onClick={() => setSelected(char)}
+          >
+            {/* Character image with no background container */}
+            <div className="relative h-[250px] md:h-[400px]">
+              <img src={char.imagePath} alt={char.name} className="h-full object-contain" />
 
-        {/* Right side - Character showcase */}
-        <div className="bg-opacity-70 flex flex-col items-center justify-center rounded-lg bg-white p-6 shadow-lg md:w-2/3">
-          <div className="mb-4 text-center">
-            <h2 className="text-2xl font-bold">{selected?.name}</h2>
-            <p className="text-gray-600">{selected?.description}</p>
-          </div>
+              {/* Selection indicator */}
+              {selected?.id === char.id && (
+                <div className="absolute -bottom-5 left-1/2 h-1 w-20 -translate-x-1/2 transform rounded-full bg-yellow-400" />
+              )}
+            </div>
 
-          <div className="relative flex h-96 w-full items-center justify-center overflow-hidden rounded-lg bg-amber-100">
-            {/* Character "stage" */}
-            <div className="absolute bottom-0 h-4 w-full bg-amber-300"></div>
+            {/* Character name with Kanisah font */}
+            <h3
+              className="mt-6 text-center text-xl md:text-2xl"
+              style={{ fontFamily: 'Kanisah, sans-serif' }}
+            >
+              {char.name}
+            </h3>
 
-            {selected && (
-              <div className="z-10 mb-2 h-[350px]">
-                <img
-                  src={selected.imagePath}
-                  alt={selected.name}
-                  className="h-full object-contain"
-                />
-              </div>
+            {/* Character description only shown for selected character */}
+            {selected?.id === char.id && (
+              <p className="mt-2 max-w-xs text-center text-gray-700">{char.description}</p>
             )}
           </div>
+        ))}
+      </div>
 
-          <Button
-            className="mt-8 px-8 py-6 text-lg"
-            disabled={!selected}
-            size="lg"
-            onClick={handleStart}
-          >
-            Start Adventure
-          </Button>
-        </div>
+      {/* Start button fixed at bottom of screen */}
+      <div className="fixed right-0 bottom-10 left-0 flex justify-center">
+        <Button className="px-12 py-6 text-xl" disabled={!selected} size="lg" onClick={handleStart}>
+          Start Adventure
+        </Button>
       </div>
     </div>
   );

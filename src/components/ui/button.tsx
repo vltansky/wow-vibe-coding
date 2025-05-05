@@ -37,6 +37,7 @@ function Button({
   variant,
   size,
   asChild = false,
+  style,
   ...props
 }: React.ComponentProps<'button'> &
   VariantProps<typeof buttonVariants> & {
@@ -44,10 +45,17 @@ function Button({
   }) {
   const Comp = asChild ? Slot : 'button';
 
+  // Default to Kanisah font
+  const buttonStyle = {
+    fontFamily: 'Kanisah, sans-serif',
+    ...style,
+  };
+
   return (
     <Comp
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
+      style={buttonStyle}
       {...props}
     />
   );

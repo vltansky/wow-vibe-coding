@@ -1,4 +1,6 @@
+import { useGameStore } from '../lib/gameStore';
 import FlorentinMinigame from '../components/levels/FlorentinMinigame';
+import OldNorthMinigame from '../components/levels/OldNorthMinigame';
 
 type MinigameContainerProps = {
   onWin: () => void;
@@ -6,10 +8,17 @@ type MinigameContainerProps = {
 };
 
 const MinigameContainer = ({ onWin, onLose }: MinigameContainerProps) => {
-  // For MVP, just use Florentin as the current minigame
-  // Later, use selectedNeighborhood from gameStore to determine which minigame to load
+  const selectedNeighborhood = useGameStore((s) => s.selectedNeighborhood);
 
-  return <FlorentinMinigame onWin={onWin} onLose={onLose} />;
+  // Select the appropriate minigame based on the neighborhood
+  switch (selectedNeighborhood) {
+    case 'Old North':
+      return <OldNorthMinigame onWin={onWin} onLose={onLose} />;
+    case 'Florentin':
+    default:
+      // Default to Florentin for MVP or if neighborhood is not selected
+      return <FlorentinMinigame onWin={onWin} onLose={onLose} />;
+  }
 };
 
 export default MinigameContainer;
