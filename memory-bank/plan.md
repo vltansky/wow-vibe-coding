@@ -180,3 +180,35 @@ This is your roadmap or milestone tracker.
 - Create a private file (e.g., src/private/apiKeys.ts) to store API keys.
 - Import the MapTiler API key from this file in MapScreen instead of hardcoding it.
 - Ensure this file is added to .gitignore and not committed to version control.
+
+---
+
+## Map-to-Minigame Integration
+
+- Clicking a neighborhood on the map should start the corresponding minigame.
+- Area to minigame mapping:
+  - 'Florentin': 'Florentin'
+  - 'Old North': 'oldNorth'
+  - 'Kerem': 'Kerem'
+  - 'Park Hamesila': 'parkHaMesilah'
+  - 'Kaplan': 'kaplan'
+  - 'Rothschild': 'rothschild'
+  - "Neve Sha'anan": 'tahanaMerkazit'
+  - 'Beach/Tayelet': 'tayelet'
+
+---
+
+## Zustand Store Update for Map-to-Minigame
+
+- Add selectedMinigame and setSelectedMinigame to the Zustand store.
+- Type guard areaName before passing to setSelectedNeighborhood (only call if valid Neighborhood).
+
+---
+
+## Horizontally Scrolling Background
+
+- Use /public/combined_street_panorama.png as the background image.
+- Create a React component (ScrollingBackground) that scrolls the image horizontally to the left, looping seamlessly, to simulate rightward movement.
+- Use requestAnimationFrame for smooth animation.
+- Make speed and height adjustable via props.
+- Integrate this component into minigames as needed.

@@ -1,12 +1,27 @@
 import { useEffect, useRef } from 'react';
+import { useGameStore } from '../lib/gameStore';
 import { MAPTILER_API_KEY } from '../private/apiKeys';
 
 const TEL_AVIV_CENTER = [32.0853, 34.7818];
 const ZOOM = 13;
 
+const AREA_TO_MINIGAME: Record<string, string> = {
+  Florentin: 'Florentin',
+  'Old North': 'oldNorth',
+  Kerem: 'Kerem',
+  'Park Hamesila': 'parkHaMesilah',
+  Kaplan: 'kaplan',
+  Rothschild: 'rothschild',
+  "Neve Sha'anan": 'tahanaMerkazit',
+  'Beach/Tayelet': 'tayelet',
+};
+
 export function MapScreen() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<unknown>(null);
+  const setSelectedNeighborhood = useGameStore((s) => s.setSelectedNeighborhood);
+  const setGameState = useGameStore((s) => s.setGameState);
+  const setSelectedMinigame = useGameStore((s) => s.setSelectedMinigame);
 
   useEffect(() => {
     let isMounted = true;
@@ -76,7 +91,30 @@ export function MapScreen() {
               mouseover: highlight,
               mouseout: reset,
               click: () => {
-                alert(`You clicked on ${f.properties?.name || 'a neighborhood'}`);
+                const areaName = f.properties?.name;
+                const validNeighborhoods = [
+                  'Florentin',
+                  'Old North',
+                  'Kerem',
+                  'Park Hamesila',
+                  'Kaplan',
+                  'Rothschild',
+                  "Neve Sha'anan",
+                  'Beach/Tayelet',
+                  'Neve Tzedek',
+                  'Memadion',
+                ];
+                if (
+                  areaName &&
+                  AREA_TO_MINIGAME[areaName] &&
+                  validNeighborhoods.includes(areaName)
+                ) {
+                  setSelectedNeighborhood(areaName as import('../lib/gameStore').Neighborhood);
+                  setSelectedMinigame(AREA_TO_MINIGAME[areaName]);
+                  setGameState('transition');
+                } else {
+                  alert(`No minigame mapped for ${areaName || 'this area'}`);
+                }
               },
             });
           }
@@ -96,7 +134,7 @@ export function MapScreen() {
       document.head.removeChild(leafletCss);
       document.body.removeChild(leafletScript);
     };
-  }, []);
+  }, [setSelectedNeighborhood, setGameState, setSelectedMinigame]);
 
   return <div ref={mapRef} style={{ width: '100vw', height: '100vh', zIndex: 1 }} />;
 }

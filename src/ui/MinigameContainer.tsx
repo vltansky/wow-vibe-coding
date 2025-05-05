@@ -7,7 +7,8 @@ type MinigameContainerProps = {
 
 const MinigameContainer = ({ onWin, onLose }: MinigameContainerProps) => {
   // For MVP, just use Florentin as the current minigame
-  // Later, use a selectedNeighborhood from store
+  // Later, use selectedNeighborhood from gameStore to determine which minigame to load
+
   return <FlorentinMinigame onWin={onWin} onLose={onLose} />;
 };
 

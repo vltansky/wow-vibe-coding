@@ -2,7 +2,7 @@ import create from 'zustand';
 
 export type GameState = 'welcome' | 'map' | 'transition' | 'minigame' | 'gameover' | 'victory';
 
-export type CharacterId = 'hipster' | 'push' | 'yemenite' | 'pilates' | 'novorich';
+export type CharacterId = 'nimrod' | 'liat' | 'reuven';
 
 export type Neighborhood =
   | 'Florentin'
@@ -35,6 +35,8 @@ export type GameStore = {
   collectedItems: Collectible[];
   collectItem: (item: Collectible) => void;
   reset: () => void;
+  selectedMinigame: string | null;
+  setSelectedMinigame: (minigame: string) => void;
 };
 
 const PERMANENT_HEARTS = 5;
@@ -93,4 +95,6 @@ export const useGameStore = create<GameStore>((set) => ({
       completedNeighborhoods: [],
       collectedItems: [],
     }),
+  selectedMinigame: null,
+  setSelectedMinigame: (minigame) => set({ selectedMinigame: minigame }),
 }));
