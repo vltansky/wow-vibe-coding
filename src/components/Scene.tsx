@@ -64,7 +64,7 @@ export function Scene() {
         />
         <GameObjects />
         {/* Conditionally render debugger for development */}
-        {import.meta.env.DEV && <Debugger />}
+        {/* {import.meta.env.DEV && <Debugger />} */}
       </Suspense>
     </Canvas>
   );

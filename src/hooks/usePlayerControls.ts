@@ -17,12 +17,15 @@ export function usePlayerControls() {
     left: false,
     right: false,
     jump: false,
+    push: false,
   });
   const canJump = useRef(true);
   const jumpTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      const gameState = useGameStore.getState();
+
       switch (event.code) {
         case 'KeyW':
         case 'ArrowUp':
@@ -49,6 +52,13 @@ export function usePlayerControls() {
             jumpTimeout.current = setTimeout(() => {
               canJump.current = true;
             }, JUMP_COOLDOWN);
+          }
+          break;
+        case 'KeyF':
+          // F key for push ability
+          if (gameState.canUsePush()) {
+            // Execute push immediately
+            gameState.usePushAbility();
           }
           break;
       }
@@ -113,14 +123,5 @@ export function usePlayerControls() {
       }
       controls.current.jump = false; // Consume the jump action
     }
-
-    // Optional: Clamp velocity to prevent excessive speeds
-    // const body = getPlayerBody(localPlayerId); // Need a function getPlayerBody
-    // if (body) {
-    //   const velocity = body.velocity;
-    //   if (velocity.lengthSq() > MAX_VELOCITY * MAX_VELOCITY) {
-    //      velocity.normalize().scale(MAX_VELOCITY, velocity);
-    //   }
-    // }
   });
 }

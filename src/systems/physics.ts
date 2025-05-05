@@ -6,6 +6,11 @@ import { useGameStore } from '@/stores/gameStore';
 const FIXED_TIMESTEP = 1 / 60;
 const MAX_SUBSTEPS = 10;
 
+// Physics constants
+const PUSH_FORCE = 40; // Force applied by push ability
+const PUSH_RADIUS = 3; // Meters - radius of push effect
+const KING_ZONE_RADIUS = 3; // Meters - radius of king zone
+
 // Physics world
 let world: CANNON.World | null = null;
 
@@ -17,6 +22,9 @@ const playerBodies: Record<string, CANNON.Body> = {};
 
 // Ground body
 let groundBody: CANNON.Body | null = null;
+
+// King zone trigger body (used for collision detection)
+let kingZoneTrigger: CANNON.Body | null = null;
 
 // Expose world for map physics
 export function getPhysicsWorld(): CANNON.World | null {
@@ -62,7 +70,34 @@ export function initPhysics() {
   // Add ground to world
   world.addBody(groundBody);
 
+  // Create king zone trigger (invisible for collision detection)
+  createKingZoneTrigger();
+
   console.log('Physics world initialized');
+}
+
+// Create a king zone trigger for collision detection
+function createKingZoneTrigger() {
+  if (!world) return;
+
+  // Create a cylinder shape for the king zone
+  const kingZoneShape = new CANNON.Cylinder(
+    KING_ZONE_RADIUS, // radiusTop
+    KING_ZONE_RADIUS, // radiusBottom
+    0.1, // height (thin cylinder)
+    16 // numSegments
+  );
+
+  // Create trigger body - a non-colliding trigger
+  kingZoneTrigger = new CANNON.Body({
+    mass: 0, // Static body
+    type: CANNON.Body.STATIC,
+    collisionResponse: false, // Doesn't affect physics, just detects
+    position: new CANNON.Vec3(0, 0.35, 0), // Slightly above the center platform
+  });
+
+  kingZoneTrigger.addShape(kingZoneShape);
+  world.addBody(kingZoneTrigger);
 }
 
 // Create a physics body for a player
@@ -97,22 +132,27 @@ export function createPlayerBody(playerId: string, position: Vector3, radius: nu
   // Store in player bodies map
   playerBodies[playerId] = sphereBody;
 
-  // Define contact material between player and ground (if ground exists)
-  // NOTE: This groundBody check might be unreliable now that map physics handles surfaces
-  // We rely on mapPhysics.ts to set up player-surface contacts.
-  // if (groundBody && groundBody.material) {
-  //   const groundPlayerContactMaterial = new CANNON.ContactMaterial(
-  //     groundBody.material,
-  //     playerMaterial,
-  //     {
-  //       friction: 0.4,
-  //       restitution: 0.3,
-  //     }
-  //   );
-  //   world.addContactMaterial(groundPlayerContactMaterial);
-  // }
+  // Set up player body collision event handlers for king zone detection
+  setupPlayerCollisionEvents(sphereBody, playerId);
 
   return sphereBody;
+}
+
+// Set up collision events for a player body
+function setupPlayerCollisionEvents(body: CANNON.Body, playerId: string) {
+  // Set up a king zone collision handler for this player
+  body.addEventListener(
+    'collide',
+    (event: { type: string; body: CANNON.Body; target: CANNON.Body }) => {
+      if (!kingZoneTrigger) return;
+
+      // Check if player collided with king zone
+      if (event.body === kingZoneTrigger) {
+        const gameStore = useGameStore.getState();
+        gameStore.enterKingZone(playerId);
+      }
+    }
+  );
 }
 
 // Remove a player's physics body
@@ -157,6 +197,80 @@ export function updatePhysics(deltaTime: number = 1 / 60) {
         gameState.players[playerId].position.copy(position);
         gameState.players[playerId].rotation.copy(rotation);
       }
+    }
+
+    // Check if player is still in king zone
+    // We do this every frame for all players
+    checkKingZoneOccupancy(playerId, position);
+  });
+
+  // If there's a current king, add points
+  const { currentKingId } = gameState;
+  if (currentKingId) {
+    // Add 1 point per second (scale by delta time)
+    gameState.addPlayerScore(currentKingId, deltaTime);
+  }
+}
+
+// Check if a player is in the king zone
+function checkKingZoneOccupancy(playerId: string, position: Vector3) {
+  // No king zone physics when not set up yet
+  if (!kingZoneTrigger) return;
+
+  const gameStore = useGameStore.getState();
+
+  // Check if player is within king zone radius
+  // Since the king zone is at (0, 0.35, 0), we only need to check x and z
+  const xzDistance = Math.sqrt(position.x * position.x + position.z * position.z);
+
+  // If within radius, mark as in king zone
+  if (xzDistance <= KING_ZONE_RADIUS) {
+    // If player wasn't already in king zone, add them
+    if (!gameStore.kingZoneOccupants.includes(playerId)) {
+      gameStore.enterKingZone(playerId);
+    }
+  } else {
+    // If player was in king zone, remove them
+    if (gameStore.kingZoneOccupants.includes(playerId)) {
+      gameStore.leaveKingZone(playerId);
+    }
+  }
+}
+
+// Apply the push ability effect
+export function applyPushEffect(position: Vector3, direction: Vector3, excludePlayerId: string) {
+  if (!world) return;
+
+  // Normalize direction
+  const normalizedDirection = direction.clone().normalize();
+
+  // Iterate through all player bodies
+  Object.entries(playerBodies).forEach(([playerId, body]) => {
+    // Skip the player who used the push
+    if (playerId === excludePlayerId) return;
+
+    // Calculate distance from push origin
+    const bodyPos = body.position;
+    const distVector = new Vector3(bodyPos.x, bodyPos.y, bodyPos.z).sub(position);
+    const distance = distVector.length();
+
+    // If within push radius, apply force
+    if (distance <= PUSH_RADIUS) {
+      // Calculate force magnitude (stronger closer to center)
+      const forceMagnitude = PUSH_FORCE * (1 - distance / PUSH_RADIUS);
+
+      // Calculate force direction
+      // This creates a cone-shaped push effect in the direction the player is facing
+      const pushDirection = new Vector3();
+      pushDirection.copy(normalizedDirection).multiplyScalar(0.7); // 70% in player's facing direction
+      pushDirection.add(distVector.normalize().multiplyScalar(0.3)); // 30% away from player
+      pushDirection.normalize().multiplyScalar(forceMagnitude);
+
+      // Apply impulse to affected player
+      body.applyImpulse(
+        new CANNON.Vec3(pushDirection.x, pushDirection.y, pushDirection.z),
+        new CANNON.Vec3(bodyPos.x, bodyPos.y, bodyPos.z)
+      );
     }
   });
 }
@@ -248,15 +362,16 @@ export function cleanupPhysics() {
         console.error('Failed to import mapPhysics for cleanup:', error);
       });
 
-    // Remove all player bodies
-    Object.values(playerBodies).forEach((body) => {
-      world!.removeBody(body);
+    // Clean up all players
+    Object.keys(playerBodies).forEach((playerId) => {
+      removePlayerBody(playerId);
     });
 
-    // Clear player bodies map
-    Object.keys(playerBodies).forEach((key) => {
-      delete playerBodies[key];
-    });
+    // Remove the king zone trigger
+    if (kingZoneTrigger) {
+      world.removeBody(kingZoneTrigger);
+      kingZoneTrigger = null;
+    }
 
     // Remove ground
     if (groundBody) {
@@ -264,10 +379,8 @@ export function cleanupPhysics() {
       groundBody = null;
     }
 
-    // Clear player material
-    playerMaterial = null;
-
-    // Null out world
+    // Clear the world
     world = null;
+    console.log('Physics cleaned up');
   }
 }

@@ -14,6 +14,9 @@ export type PlayerState = {
   color: string;
   isHost: boolean;
   nickname: string;
+  score: number; // Track player score
+  isKing: boolean; // Whether player is the current king
+  lastPushTime: number; // Last time player used push ability
 };
 
 // Game state
@@ -31,6 +34,12 @@ export type GameState = {
   // All players in game (including local)
   players: Record<PlayerId, PlayerState>;
 
+  // King of the hill mechanics
+  currentKingId: PlayerId | null; // ID of current king
+  kingZoneOccupants: PlayerId[]; // All players in the king zone
+  winningScore: number; // Score needed to win (60 by default)
+  gameWinner: PlayerId | null; // ID of player who won the game
+
   // Networking
   peerManager: PeerManager | null;
 
@@ -39,7 +48,22 @@ export type GameState = {
   disconnect: () => void;
   updateLocalPlayerPosition: (position: Vector3) => void;
   updateLocalPlayerRotation: (rotation: Quaternion) => void;
+
+  // King mechanics
+  enterKingZone: (playerId: PlayerId) => void;
+  leaveKingZone: (playerId: PlayerId) => void;
+  updateKingStatus: () => void;
+  addPlayerScore: (playerId: PlayerId, points: number) => void;
+  resetScores: () => void;
+
+  // Push mechanic
+  usePushAbility: () => void;
+  canUsePush: () => boolean;
 };
+
+// Constants
+const PUSH_COOLDOWN = 4000; // 4 seconds between pushes
+const WINNING_SCORE = 60; // 60 points to win (1 minute as king)
 
 // Create the store
 export const useGameStore = create<GameState>((set, get) => {
@@ -66,6 +90,18 @@ export const useGameStore = create<GameState>((set, get) => {
       changed = true;
     }
 
+    // Check score change
+    if (partialState.score !== undefined && currentState.score !== partialState.score) {
+      updatedState.score = partialState.score;
+      changed = true;
+    }
+
+    // Check king status change
+    if (partialState.isKing !== undefined && currentState.isKing !== partialState.isKing) {
+      updatedState.isKing = partialState.isKing;
+      changed = true;
+    }
+
     // Check other potential fields if added later (e.g., nickname, color)
     if (partialState.nickname && currentState.nickname !== partialState.nickname) {
       updatedState.nickname = partialState.nickname;
@@ -83,7 +119,8 @@ export const useGameStore = create<GameState>((set, get) => {
       if (partialState.position) broadcastPayload.position = updatedState.position;
       if (partialState.rotation) broadcastPayload.rotation = updatedState.rotation;
       if (partialState.nickname) broadcastPayload.nickname = updatedState.nickname;
-      // Add other changed fields to payload
+      if (partialState.score !== undefined) broadcastPayload.score = updatedState.score;
+      if (partialState.isKing !== undefined) broadcastPayload.isKing = updatedState.isKing;
 
       peerManager.broadcast('player_state_update', broadcastPayload);
     }
@@ -99,6 +136,12 @@ export const useGameStore = create<GameState>((set, get) => {
     localPlayerId: null,
     players: {},
     peerManager: null,
+
+    // King of the hill state
+    currentKingId: null,
+    kingZoneOccupants: [],
+    winningScore: WINNING_SCORE,
+    gameWinner: null,
 
     // Connect to a room
     connect: (roomId: string, nickname: string = 'Player') => {
@@ -121,6 +164,9 @@ export const useGameStore = create<GameState>((set, get) => {
             color: getRandomColor(),
             isHost: false, // Will be set to true if first in room
             nickname: nickname,
+            score: 0, // Initial score is 0
+            isKing: false, // Not king by default
+            lastPushTime: 0, // Never used push initially
           };
 
           // *** Call createPlayerBody AFTER setting initial state ***
@@ -226,11 +272,22 @@ export const useGameStore = create<GameState>((set, get) => {
             playerState.rotation.z || 0,
             playerState.rotation.w || 1
           );
-          updatedPlayers[peerId] = { ...playerState, position, rotation, id: peerId };
+
+          // Include king mechanics properties with defaults
+          updatedPlayers[peerId] = {
+            ...playerState,
+            position,
+            rotation,
+            id: peerId,
+            score: playerState.score || 0,
+            isKing: playerState.isKing || false,
+            lastPushTime: playerState.lastPushTime || 0,
+          };
+
           set({ players: updatedPlayers });
         }
 
-        // *** NEW: Handler for partial updates ***
+        // Handler for partial updates
         if (data.type === 'player_state_update') {
           const partialUpdate = data.payload as Partial<PlayerState>;
           const targetPlayerId = partialUpdate.id;
@@ -249,6 +306,7 @@ export const useGameStore = create<GameState>((set, get) => {
                   partialUpdate.position.z || 0
                 );
               }
+
               if (partialUpdate.rotation) {
                 updatedPlayerState.rotation.set(
                   partialUpdate.rotation.x || 0,
@@ -257,15 +315,48 @@ export const useGameStore = create<GameState>((set, get) => {
                   partialUpdate.rotation.w || 1
                 );
               }
-              if (partialUpdate.nickname) {
+
+              // Handle king mechanics properties in partial update
+              if (partialUpdate.score !== undefined) {
+                updatedPlayerState.score = partialUpdate.score;
+              }
+
+              if (partialUpdate.isKing !== undefined) {
+                updatedPlayerState.isKing = partialUpdate.isKing;
+              }
+
+              if (partialUpdate.nickname !== undefined) {
                 updatedPlayerState.nickname = partialUpdate.nickname;
               }
-              // Handle other partial fields
 
               const updatedPlayers = { ...players, [targetPlayerId]: updatedPlayerState };
               set({ players: updatedPlayers });
+
+              // Check if any player has reached the winning score
+              if (updatedPlayerState.score >= get().winningScore && !get().gameWinner) {
+                set({ gameWinner: targetPlayerId });
+              }
             }
           }
+        }
+
+        // Handle push notifications from other players
+        if (data.type === 'push_ability_used') {
+          const { position, direction, playerId } = data.payload as {
+            position: { x: number; y: number; z: number };
+            direction: { x: number; y: number; z: number };
+            playerId: string;
+          };
+
+          // Import physics system to apply push effect
+          import('@/systems/physics').then(({ applyPushEffect }) => {
+            // This function will be implemented in physics.ts
+            applyPushEffect(
+              new Vector3(position.x, position.y, position.z),
+              new Vector3(direction.x, direction.y, direction.z),
+              playerId
+            );
+          });
         }
       });
 
@@ -279,7 +370,6 @@ export const useGameStore = create<GameState>((set, get) => {
     // Disconnect from the room
     disconnect: () => {
       const { peerManager } = get();
-
       if (peerManager) {
         peerManager.disconnect();
       }
@@ -291,6 +381,14 @@ export const useGameStore = create<GameState>((set, get) => {
         localPlayerId: null,
         players: {},
         peerManager: null,
+        currentKingId: null,
+        kingZoneOccupants: [],
+        gameWinner: null,
+      });
+
+      // Clean up physics
+      import('@/systems/physics').then(({ cleanupPhysics }) => {
+        cleanupPhysics();
       });
     },
 
@@ -303,21 +401,175 @@ export const useGameStore = create<GameState>((set, get) => {
     updateLocalPlayerRotation: (rotation: Quaternion) => {
       updateAndBroadcastPlayerState({ rotation });
     },
+
+    // King zone mechanics
+    enterKingZone: (playerId: PlayerId) => {
+      const { kingZoneOccupants } = get();
+      if (!kingZoneOccupants.includes(playerId)) {
+        const updatedOccupants = [...kingZoneOccupants, playerId];
+        set({ kingZoneOccupants: updatedOccupants });
+
+        // Update king status whenever zone occupancy changes
+        get().updateKingStatus();
+      }
+    },
+
+    leaveKingZone: (playerId: PlayerId) => {
+      const { kingZoneOccupants } = get();
+      if (kingZoneOccupants.includes(playerId)) {
+        const updatedOccupants = kingZoneOccupants.filter((id) => id !== playerId);
+        set({ kingZoneOccupants: updatedOccupants });
+
+        // Update king status whenever zone occupancy changes
+        get().updateKingStatus();
+      }
+    },
+
+    updateKingStatus: () => {
+      const { kingZoneOccupants, players, currentKingId } = get();
+
+      // If only one player in zone, they're king
+      if (kingZoneOccupants.length === 1) {
+        const newKingId = kingZoneOccupants[0];
+
+        // If king has changed
+        if (currentKingId !== newKingId) {
+          // Update old king (if any)
+          if (currentKingId && players[currentKingId]) {
+            const oldKing = players[currentKingId];
+            updateAndBroadcastPlayerState({ id: currentKingId, isKing: false });
+          }
+
+          // Update new king
+          updateAndBroadcastPlayerState({ id: newKingId, isKing: true });
+          set({ currentKingId: newKingId });
+        }
+      }
+      // If no players or multiple players in zone, no one is king
+      else if (currentKingId) {
+        // Remove king status from current king
+        const oldKing = players[currentKingId];
+        if (oldKing) {
+          updateAndBroadcastPlayerState({ id: currentKingId, isKing: false });
+        }
+        set({ currentKingId: null });
+      }
+    },
+
+    addPlayerScore: (playerId: PlayerId, points: number) => {
+      const { players, winningScore } = get();
+      if (players[playerId]) {
+        const newScore = players[playerId].score + points;
+
+        // Update score
+        if (playerId === get().localPlayerId) {
+          updateAndBroadcastPlayerState({ id: playerId, score: newScore });
+        } else {
+          // For remote players, update state directly without broadcasting
+          const updatedPlayers = {
+            ...players,
+            [playerId]: { ...players[playerId], score: newScore },
+          };
+          set({ players: updatedPlayers });
+        }
+
+        // Check if player won
+        if (newScore >= winningScore) {
+          set({ gameWinner: playerId });
+        }
+      }
+    },
+
+    resetScores: () => {
+      const { players, localPlayerId } = get();
+
+      // Reset all scores to 0
+      const updatedPlayers = { ...players };
+      Object.keys(updatedPlayers).forEach((playerId) => {
+        updatedPlayers[playerId].score = 0;
+      });
+
+      set({
+        players: updatedPlayers,
+        gameWinner: null,
+      });
+
+      // Broadcast score reset for local player
+      if (localPlayerId) {
+        updateAndBroadcastPlayerState({ id: localPlayerId, score: 0 });
+      }
+    },
+
+    // Push mechanic
+    usePushAbility: () => {
+      const { localPlayerId, players, peerManager } = get();
+      if (!localPlayerId || !peerManager) return;
+
+      const localPlayer = players[localPlayerId];
+      const currentTime = Date.now();
+
+      // Check cooldown
+      if (currentTime - localPlayer.lastPushTime < PUSH_COOLDOWN) {
+        return; // Still on cooldown
+      }
+
+      // Update last push time
+      const updatedPlayers = {
+        ...players,
+        [localPlayerId]: {
+          ...localPlayer,
+          lastPushTime: currentTime,
+        },
+      };
+      set({ players: updatedPlayers });
+
+      // Get player facing direction from rotation
+      const direction = new Vector3(0, 0, -1).applyQuaternion(localPlayer.rotation);
+
+      // Apply push locally through physics system
+      import('@/systems/physics').then(({ applyPushEffect }) => {
+        applyPushEffect(localPlayer.position, direction, localPlayerId);
+      });
+
+      // Broadcast push action to all peers
+      peerManager.broadcast('push_ability_used', {
+        playerId: localPlayerId,
+        position: {
+          x: localPlayer.position.x,
+          y: localPlayer.position.y,
+          z: localPlayer.position.z,
+        },
+        direction: {
+          x: direction.x,
+          y: direction.y,
+          z: direction.z,
+        },
+      });
+    },
+
+    canUsePush: () => {
+      const { localPlayerId, players } = get();
+      if (!localPlayerId) return false;
+
+      const localPlayer = players[localPlayerId];
+      return Date.now() - localPlayer.lastPushTime >= PUSH_COOLDOWN;
+    },
   };
 });
 
-// Helper to generate a random color
+// Helper to generate random player colors
 function getRandomColor(): string {
   const colors = [
-    '#FF5733', // Red
+    '#FF5733', // Red-Orange
     '#33FF57', // Green
     '#3357FF', // Blue
-    '#FF33F5', // Pink
-    '#F5FF33', // Yellow
-    '#33FFF5', // Cyan
-    '#FF5733', // Orange
-    '#9333FF', // Purple
+    '#F3FF33', // Yellow
+    '#FF33F3', // Pink
+    '#33FFF3', // Cyan
+    '#FF8333', // Orange
+    '#8333FF', // Purple
+    '#33FF83', // Mint
+    '#FF3383', // Rose
   ];
-
   return colors[Math.floor(Math.random() * colors.length)];
 }
