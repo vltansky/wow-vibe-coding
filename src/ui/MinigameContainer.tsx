@@ -9,15 +9,23 @@ type MinigameContainerProps = {
 
 const MinigameContainer = ({ onWin, onLose }: MinigameContainerProps) => {
   const selectedNeighborhood = useGameStore((s) => s.selectedNeighborhood);
+  const completeNeighborhood = useGameStore((s) => s.completeNeighborhood);
+
+  const handleWin = () => {
+    if (selectedNeighborhood) {
+      completeNeighborhood(selectedNeighborhood);
+    }
+    onWin();
+  };
 
   // Select the appropriate minigame based on the neighborhood
   switch (selectedNeighborhood) {
     case 'Old North':
-      return <OldNorthMinigame onWin={onWin} onLose={onLose} />;
+      return <OldNorthMinigame onWin={handleWin} onLose={onLose} />;
     case 'Florentin':
     default:
       // Default to Florentin for MVP or if neighborhood is not selected
-      return <FlorentinMinigame onWin={onWin} onLose={onLose} />;
+      return <FlorentinMinigame onWin={handleWin} onLose={onLose} />;
   }
 };
 

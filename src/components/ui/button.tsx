@@ -48,6 +48,8 @@ function Button({
   // Default to Kanisah font
   const buttonStyle = {
     fontFamily: 'Kanisah, sans-serif',
+    padding: '50px',
+    cursor: 'pointer',
     ...style,
   };
 

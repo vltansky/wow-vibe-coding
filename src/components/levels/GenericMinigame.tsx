@@ -27,9 +27,6 @@ export type GenericMinigameProps = {
   gameDuration?: number; // in milliseconds
 };
 
-// Use aspect ratio from original game
-const ASPECT_RATIO = 480 / 640;
-const GAME_HEIGHT_PERCENT = 90; // 90% of viewport height
 const PLAYER_RADIUS = 24;
 
 const characterImages = {
@@ -45,8 +42,7 @@ export default function GenericMinigame({
   gameDuration = 20000, // Default 20 seconds
 }: GenericMinigameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [gameWidth, setGameWidth] = useState(0);
-  const [gameHeight, setGameHeight] = useState(0);
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const [playerX, setPlayerX] = useState(0);
   const [enemies, setEnemies] = useState<{ x: number; y: number; size: number }[]>([]);
   const [collectible, setCollectible] = useState<{
@@ -70,32 +66,24 @@ export default function GenericMinigame({
   const setGameState = useGameStore((s) => s.setGameState);
   const selectedCharacter = useGameStore((s) => s.selectedCharacter);
 
-  // Initialize canvas dimensions
+  // Set canvas size to window size
   useEffect(() => {
-    const updateDimensions = () => {
-      const vh = window.innerHeight;
-      const gameHeight = (vh * GAME_HEIGHT_PERCENT) / 100;
-      const gameWidth = gameHeight * ASPECT_RATIO;
-
-      setGameHeight(gameHeight);
-      setGameWidth(gameWidth);
-      setPlayerX(gameWidth / 2);
-
+    const updateSize = () => {
+      setCanvasSize({ width: window.innerWidth, height: window.innerHeight });
+      setPlayerX(window.innerWidth / 2);
       if (canvasRef.current) {
-        canvasRef.current.width = gameWidth;
-        canvasRef.current.height = gameHeight;
+        canvasRef.current.width = window.innerWidth;
+        canvasRef.current.height = window.innerHeight;
       }
     };
-
-    updateDimensions();
-    window.addEventListener('resize', updateDimensions);
-
-    return () => window.removeEventListener('resize', updateDimensions);
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
   }, []);
 
-  // Random X position scaled to game width
+  // Random X position scaled to canvas width
   const randomX = () => {
-    return Math.random() * (gameWidth - 50) + 25; // Ensure enemy is fully on screen
+    return Math.random() * (canvasSize.width - 50) + 25;
   };
 
   // Generate random enemy size between min and max
@@ -152,16 +140,16 @@ export default function GenericMinigame({
       const rect = canvasRef.current?.getBoundingClientRect();
       if (!rect) return;
       const x = e.clientX - rect.left;
-      setPlayerX(Math.max(PLAYER_RADIUS, Math.min(gameWidth - PLAYER_RADIUS, x)));
+      setPlayerX(Math.max(PLAYER_RADIUS, Math.min(canvasSize.width - PLAYER_RADIUS, x)));
     }
     const canvas = canvasRef.current;
     canvas?.addEventListener('mousemove', handleMouse);
     return () => canvas?.removeEventListener('mousemove', handleMouse);
-  }, [gameWidth]);
+  }, [canvasSize.width]);
 
   // Enemy spawner
   useEffect(() => {
-    if (!running || !gameWidth) return;
+    if (!running || !canvasSize.width) return;
     let timeoutId: NodeJS.Timeout;
     function spawnEnemy() {
       setEnemies((d) => [...d, { x: randomX(), y: -30, size: randomEnemySize() }]);
@@ -169,11 +157,11 @@ export default function GenericMinigame({
     }
     spawnEnemy();
     return () => clearTimeout(timeoutId);
-  }, [running, gameWidth, theme.enemySpawnInterval]);
+  }, [running, canvasSize.width, theme.enemySpawnInterval]);
 
   // Occasionally spawn a collectible
   useEffect(() => {
-    if (!running || collectible || !gameWidth) return;
+    if (!running || collectible || !canvasSize.width) return;
     // Spawn a collectible every 5 seconds
     const spawn = () => {
       setCollectible({
@@ -184,14 +172,14 @@ export default function GenericMinigame({
     };
     const timer = setTimeout(spawn, 5000);
     return () => clearTimeout(timer);
-  }, [running, collectible, gameWidth]);
+  }, [running, collectible, canvasSize.width]);
 
   // Draw
   useEffect(() => {
     const ctx = canvasRef.current?.getContext('2d');
-    if (!ctx || !gameWidth || !gameHeight) return;
+    if (!ctx || !canvasSize.width || !canvasSize.height) return;
 
-    ctx.clearRect(0, 0, gameWidth, gameHeight);
+    ctx.clearRect(0, 0, canvasSize.width, canvasSize.height);
 
     // Background image with horizontal scrolling
     if (backgroundImageRef.current) {
@@ -200,7 +188,7 @@ export default function GenericMinigame({
 
       // Calculate proper scaling to maintain aspect ratio
       // Scale to fit the height of the canvas perfectly
-      const scale = gameHeight / imgH;
+      const scale = canvasSize.height / imgH;
       const scaledWidth = imgW * scale;
 
       // Calculate offset based on scaled dimensions
@@ -208,38 +196,44 @@ export default function GenericMinigame({
 
       // Draw the background image for continuous horizontal scrolling
       // First copy
-      ctx.drawImage(backgroundImageRef.current, -offset, 0, scaledWidth, gameHeight);
+      ctx.drawImage(backgroundImageRef.current, -offset, 0, scaledWidth, canvasSize.height);
 
       // Second copy for seamless scrolling
-      ctx.drawImage(backgroundImageRef.current, scaledWidth - offset, 0, scaledWidth, gameHeight);
+      ctx.drawImage(
+        backgroundImageRef.current,
+        scaledWidth - offset,
+        0,
+        scaledWidth,
+        canvasSize.height
+      );
 
       // Add semi-transparent overlay for better visibility
       ctx.fillStyle = theme.backgroundOverlayColor || 'rgba(245, 245, 220, 0.3)';
-      ctx.fillRect(0, 0, gameWidth, gameHeight);
+      ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
     } else {
       // Fallback background
       ctx.fillStyle = '#f5f5dc';
-      ctx.fillRect(0, 0, gameWidth, gameHeight);
+      ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
     }
 
     // Player
     if (playerImageRef.current && selectedCharacter) {
       // Draw player character image
-      const playerHeight = gameHeight * 0.23; // Scale with canvas
+      const playerHeight = canvasSize.height * 0.23; // Scale with canvas
       const aspectRatio = playerImageRef.current.width / playerImageRef.current.height;
       const playerWidth = playerHeight * aspectRatio;
 
       ctx.drawImage(
         playerImageRef.current,
         playerX - playerWidth / 2,
-        gameHeight - 60 - playerHeight / 2,
+        canvasSize.height - 60 - playerHeight / 2,
         playerWidth,
         playerHeight
       );
     } else {
       // Fallback to circle if image not loaded
       ctx.beginPath();
-      ctx.arc(playerX, gameHeight - 60, PLAYER_RADIUS, 0, 2 * Math.PI);
+      ctx.arc(playerX, canvasSize.height - 60, PLAYER_RADIUS, 0, 2 * Math.PI);
       ctx.fillStyle = '#1976d2';
       ctx.fill();
     }
@@ -298,48 +292,48 @@ export default function GenericMinigame({
 
     // Game instruction text
     ctx.fillStyle = '#333';
-    ctx.font = Math.floor(gameWidth / 20) + 'px sans-serif';
+    ctx.font = Math.floor(canvasSize.width / 20) + 'px sans-serif';
     ctx.fillText(theme.instructionText, 16, 32);
-  }, [enemies, playerX, collectible, selectedCharacter, gameWidth, gameHeight, theme]);
+  }, [enemies, playerX, collectible, selectedCharacter, canvasSize]);
 
   // Game loop with background scrolling
   useEffect(() => {
-    if (!running || !gameWidth) return () => {};
+    if (!running || !canvasSize.width) return () => {};
     function loop() {
       // Update background offset for horizontal scrolling
       // Get proper scaled width if background image is loaded
       if (backgroundImageRef.current) {
         const { width: imgW, height: imgH } = backgroundImageRef.current;
-        const scale = gameHeight / imgH;
+        const scale = canvasSize.height / imgH;
         const scaledWidth = imgW * scale;
 
         // Increment offset by 1px each frame and reset when a full image width has been scrolled
         bgOffsetRef.current = (bgOffsetRef.current + 1) % scaledWidth;
       } else {
         // Fallback if image isn't loaded yet
-        bgOffsetRef.current = (bgOffsetRef.current + 1) % (gameWidth * 2);
+        bgOffsetRef.current = (bgOffsetRef.current + 1) % (canvasSize.width * 2);
       }
 
       setEnemies((d) =>
         d
           .map((enemy) => ({ ...enemy, y: enemy.y + theme.enemySpeed }))
-          .filter((enemy) => enemy.y < gameHeight + 50)
+          .filter((enemy) => enemy.y < canvasSize.height + 50)
       );
       setCollectible((c) => (c ? { ...c, y: c.y + 2 } : c));
       animationRef.current = requestAnimationFrame(loop);
     }
     animationRef.current = requestAnimationFrame(loop);
     return () => animationRef.current && cancelAnimationFrame(animationRef.current);
-  }, [running, gameWidth, gameHeight, theme.enemySpeed]);
+  }, [running, canvasSize.width, canvasSize.height, theme.enemySpeed]);
 
   // Collision detection & win/lose
   useEffect(() => {
-    if (!running || !gameWidth) return;
+    if (!running || !canvasSize.width) return;
     // Enemies
     if (!lifeLost) {
       for (const enemy of enemies) {
         const dx = enemy.x - playerX;
-        const dy = enemy.y - (gameHeight - 60);
+        const dy = enemy.y - (canvasSize.height - 60);
         // Adjust collision radius based on enemy size
         const enemyCollisionRadius = enemy.size / 4; // Approximate collision radius based on visual size
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -360,12 +354,12 @@ export default function GenericMinigame({
     // Collectible
     if (collectible) {
       const dx = collectible.x - playerX;
-      const dy = collectible.y - (gameHeight - 60);
+      const dy = collectible.y - (canvasSize.height - 60);
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < PLAYER_RADIUS + 20) {
         gainHeart();
         setCollectible(null);
-      } else if (collectible.y > gameHeight + 20) {
+      } else if (collectible.y > canvasSize.height + 20) {
         setCollectible(null);
       }
     }
@@ -385,8 +379,7 @@ export default function GenericMinigame({
     hearts,
     setGameState,
     lifeLost,
-    gameWidth,
-    gameHeight,
+    canvasSize,
     gameDuration,
   ]);
 
@@ -395,20 +388,24 @@ export default function GenericMinigame({
       style={{
         width: '100vw',
         height: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        position: 'fixed',
+        top: 0,
+        left: 0,
         background: '#f5f5dc',
-        position: 'relative',
+        zIndex: 1000,
       }}
     >
       <canvas
         ref={canvasRef}
+        width={canvasSize.width}
+        height={canvasSize.height}
         style={{
-          border: '2px solid #222',
-          borderRadius: 16,
-          position: 'relative',
-          zIndex: 1,
+          width: '100vw',
+          height: '100vh',
+          display: 'block',
+          position: 'absolute',
+          top: 0,
+          left: 0,
         }}
       />
     </div>
