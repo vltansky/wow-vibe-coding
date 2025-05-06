@@ -243,7 +243,7 @@ export default function GenericMinigame({ theme }: GenericMinigameProps) {
   // Occasionally spawn a collectible
   useEffect(() => {
     if (!running || collectible || !canvasSize.width) return;
-    // Spawn a collectible every 5 seconds
+    // Spawn a collectible every 8 seconds (decreases with difficulty, see PRD)
     const spawn = () => {
       setCollectible({
         x: randomX(),
@@ -252,14 +252,14 @@ export default function GenericMinigame({ theme }: GenericMinigameProps) {
         spawnTime: Date.now(),
       });
     };
-    const timer = setTimeout(spawn, 5000);
+    const timer = setTimeout(spawn, 8000); // 8 seconds base, decrease with difficulty
     return () => clearTimeout(timer);
   }, [running, collectible, canvasSize.width]);
 
   // Occasionally spawn a point item
   useEffect(() => {
     if (!running || pointItem || !canvasSize.width) return;
-    // Spawn a point item every 3 seconds
+    // Spawn a point item every 0.5 seconds
     const spawn = () => {
       setPointItem({
         x: randomX(),
@@ -268,7 +268,7 @@ export default function GenericMinigame({ theme }: GenericMinigameProps) {
         spawnTime: Date.now(),
       });
     };
-    const timer = setTimeout(spawn, 3000);
+    const timer = setTimeout(spawn, 500); // 0.5 second
     return () => clearTimeout(timer);
   }, [running, pointItem, canvasSize.width]);
 
@@ -792,8 +792,8 @@ export default function GenericMinigame({ theme }: GenericMinigameProps) {
           .map((enemy) => ({ ...enemy, y: enemy.y + theme.enemySpeed }))
           .filter((enemy) => enemy.y < canvasSize.height + 50)
       );
-      setCollectible((c) => (c ? { ...c, y: c.y + 2 } : c));
-      setPointItem((c) => (c ? { ...c, y: c.y + 2 } : c));
+      setCollectible((c) => (c ? { ...c, y: c.y + 4 } : c));
+      setPointItem((c) => (c ? { ...c, y: c.y + 4 } : c));
       animationRef.current = requestAnimationFrame(loop);
     }
     animationRef.current = requestAnimationFrame(loop);

@@ -2,7 +2,6 @@ import { useGameStore, GameStore, Collectible } from '../lib/gameStore';
 
 const heartIcon = '❤️';
 const emptyHeartIcon = '🤍';
-const tempHeartIcon = '💛';
 const hummusIcon = '🥣';
 const falafelIcon = '🥙';
 
@@ -93,7 +92,7 @@ const HUD = ({
         </div>
       )}
       <div className="retro-hud-panel pointer-events-auto mb-4 flex gap-3">
-        {/* Permanent hearts (1-5) */}
+        {/* Hearts (1-5) */}
         {Array.from({ length: 5 }).map((_, i: number) =>
           i < health.permanentHearts ? (
             <span key={i} style={{ opacity: 1, color: '#e63946', fontSize: 32 }}>
@@ -105,12 +104,6 @@ const HUD = ({
             </span>
           )
         )}
-        {/* Temporary hearts (6+) */}
-        {Array.from({ length: health.temporaryHearts }).map((_, i: number) => (
-          <span key={`temp-${i}`} style={{ color: '#ffd700', fontSize: 32 }}>
-            {tempHeartIcon}
-          </span>
-        ))}
       </div>
       {collectedItems.length > 0 && (
         <span className="retro-hud-panel mt-2 flex gap-2">

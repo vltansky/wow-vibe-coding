@@ -40,10 +40,11 @@ Players can choose from five distinct characters, each with their own visual sty
 
 ### 3.2 Health System
 
-- 5 permanent hearts representing player health
-- Temporary hearts that can be collected as power-ups
+- 5 hearts representing player health (always visible in the HUD)
 - Hearts are lost when colliding with enemies in minigames
+- Hearts can be restored by collecting hummus or falafel, up to a maximum of 5
 - Game ends when all hearts are depleted
+- Never display more than 5 hearts, and never show temporary or extra hearts
 
 ### 3.3 Map Navigation
 
@@ -67,6 +68,49 @@ Each neighborhood features a unique minigame with:
 - Primary collectibles like hummus and falafel
 - Point items that increase score
 - Hearts that restore health
+
+### 3.6 Minigame Difficulty Progression Mechanics
+
+#### Difficulty Multiplier Table
+
+| Completed Neighborhoods | Enemy Speed (px/s) | Enemy Spawn Interval (s) | Background Speed (px/s) | Player Speed (px/s) | Heart Spawn Interval (s) |
+| ----------------------- | ------------------ | ------------------------ | ----------------------- | ------------------- | ------------------------ |
+| 0                       | 100                | 2.0                      | 50                      | 200                 | 10                       |
+| 1                       | 110                | 1.8                      | 55                      | 220                 | 10                       |
+| 2                       | 120                | 1.6                      | 60                      | 240                 | 9                        |
+| 3                       | 130                | 1.4                      | 65                      | 260                 | 9                        |
+| 4+                      | 150                | 1.2                      | 75                      | 300                 | 8                        |
+
+- Difficulty is based on the number of completed neighborhoods, not which ones.
+- All minigames use this progression for enemy speed, spawn interval, background speed, player speed, and heart spawn interval.
+
+#### Enemy Density and Variety
+
+- 0–1 completed: Single enemy spawns (1 at a time).
+- 2–3 completed: Waves of 2 enemies spawn simultaneously.
+- 4+ completed: Waves of 3 enemies spawn simultaneously.
+- Each minigame must have at least two enemy types with distinct behaviors (e.g., slow/straight, fast/zigzag).
+- Enemy types are randomly selected per wave, weighted for balance (e.g., 60% slow, 40% fast).
+- Cap max enemies on screen at 10.
+
+#### Collectible Balance
+
+- Primary collectibles: Spawn interval decreases with difficulty (see table above), max 3–4 per minigame.
+- Point items: Spawn every 1 second, +10 points each, constant across all difficulties.
+
+#### Standardization
+
+- All minigames (Florentin, Old North, Tayelet, etc.) use the same difficulty progression, enemy wave, and collectible logic.
+- Only assets and enemy/collectible types differ by neighborhood.
+
+#### Technical Implementation Notes
+
+- Difficulty parameters are calculated based on completedNeighborhoods.length in Zustand.
+- Game engine applies these parameters to enemy spawning, movement, background speed, player speed, and collectible spawning.
+- Enemy types and wave logic are defined in each minigame's configuration.
+- Difficulty is updated after each completed minigame.
+- Log difficulty and spawn events for debugging.
+- Cap max enemies on screen to prevent overcrowding.
 
 ## 4. Features & Screens
 
@@ -169,7 +213,7 @@ The following neighborhoods are implemented with corresponding minigames:
 - Game state (welcome, map, transition, minigame, gameover, victory)
 - Character selection
 - Neighborhood selection and completion tracking
-- Health tracking (permanent and temporary hearts)
+- Health tracking (5 hearts only, no temporary or extra hearts)
 - Collectible inventory
 - Score system
 
