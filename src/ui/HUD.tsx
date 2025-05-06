@@ -15,8 +15,8 @@ type HUDProps = {
 };
 
 const TimeWheel = ({ remainingTime = 30 }: { remainingTime: number }) => {
-  const size = 54;
-  const stroke = 6;
+  const size = 80;
+  const stroke = 8;
   const radius = (size - stroke) / 2;
   const center = size / 2;
   const progress = Math.max(0, Math.min(1, remainingTime / 30));
@@ -50,9 +50,9 @@ const TimeWheel = ({ remainingTime = 30 }: { remainingTime: number }) => {
       />
       <text
         x={center}
-        y={center + 6}
+        y={center + 10}
         textAnchor="middle"
-        fontSize="16"
+        fontSize="28"
         fill="#222"
         fontWeight="bold"
       >
@@ -71,8 +71,6 @@ const HUD = ({
 }: HUDProps) => {
   const health = useGameStore((s: GameStore) => s.health);
   const collectedItems = useGameStore((s: GameStore) => s.collectedItems);
-  const completedNeighborhoods = useGameStore((s) => s.completedNeighborhoods);
-  const totalAreas = 9; // Update if you add/remove playable areas
 
   return (
     <div
@@ -113,9 +111,6 @@ const HUD = ({
             {tempHeartIcon}
           </span>
         ))}
-      </div>
-      <div className="pointer-events-auto mb-2 rounded bg-white/80 px-6 py-2 text-base text-gray-700 shadow">
-        Areas completed {completedNeighborhoods.length} out of {totalAreas}
       </div>
       <span className="mt-2 flex gap-2">
         {collectedItems.map((item: Collectible, i: number) =>

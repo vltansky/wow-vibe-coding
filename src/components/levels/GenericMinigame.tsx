@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../lib/gameStore';
 import HUD from '../../ui/HUD';
+import thudSoundUrl from '../../../public/hurt.mp3';
+import dingSoundUrl from '../../../public/coin.mp3';
+import sparkleSoundUrl from '../../../public/sparkle.mp3';
 
 export type MinigameTheme = {
   // Game elements
@@ -65,7 +68,6 @@ export default function GenericMinigame({ theme }: GenericMinigameProps) {
   } | null>(null);
   const pointItemImagesRef = useRef<Record<string, HTMLImageElement | null>>({});
   const boomImageRef = useRef<HTMLImageElement | null>(null);
-  const [flickerUntil, setFlickerUntil] = useState<number>(0);
 
   const setGameState = useGameStore((s) => s.setGameState);
   const selectedCharacter = useGameStore((s) => s.selectedCharacter);
@@ -85,6 +87,34 @@ export default function GenericMinigame({ theme }: GenericMinigameProps) {
   const invulnerabilityEndTime = useGameStore((s) => s.invulnerabilityEndTime);
   const setInvulnerable = useGameStore((s) => s.setInvulnerable);
   const clearInvulnerable = useGameStore((s) => s.clearInvulnerable);
+
+  // Set flicker state from Zustand
+  const setFlicker = useGameStore((s) => s.setFlicker);
+  const clearFlicker = useGameStore((s) => s.clearFlicker);
+  const setShake = useGameStore((s) => s.setShake);
+  const clearShake = useGameStore((s) => s.clearShake);
+  const setAura = useGameStore((s) => s.setAura);
+  const clearAura = useGameStore((s) => s.clearAura);
+  const isFlickering = useGameStore((s) => s.isFlickering);
+  const flickerEndTime = useGameStore((s) => s.flickerEndTime);
+  const shakeEndTime = useGameStore((s) => s.shakeEndTime);
+  const aura = useGameStore((s) => s.aura);
+
+  // Preload audio
+  const thudAudio = useRef<HTMLAudioElement>();
+  const dingAudio = useRef<HTMLAudioElement>();
+  const sparkleAudio = useRef<HTMLAudioElement>();
+  useEffect(() => {
+    thudAudio.current = new Audio(thudSoundUrl);
+    thudAudio.current.volume = 0.5;
+    dingAudio.current = new Audio(dingSoundUrl);
+    dingAudio.current.volume = 0.5;
+    sparkleAudio.current = new Audio(sparkleSoundUrl);
+    sparkleAudio.current.volume = 0.7;
+  }, []);
+
+  // Red overlay state
+  const [redOverlayEnd, setRedOverlayEnd] = useState(0);
 
   // Set canvas size to window size
   useEffect(() => {
@@ -363,8 +393,14 @@ export default function GenericMinigame({ theme }: GenericMinigameProps) {
         const enemyRect = getEnemyRect(enemy);
         if (rectsOverlap(playerRect, enemyRect)) {
           console.log('Enemy collision!');
-          setInvulnerable(Date.now() + 750);
-          setFlickerUntil(Date.now() + 750);
+          setInvulnerable(Date.now() + 1500);
+          setFlicker(Date.now() + 500);
+          setShake(Date.now() + 300);
+          setRedOverlayEnd(Date.now() + 300);
+          if (thudAudio.current) {
+            thudAudio.current.currentTime = 0;
+            thudAudio.current.play();
+          }
           loseHeart();
           return;
         }
@@ -376,6 +412,11 @@ export default function GenericMinigame({ theme }: GenericMinigameProps) {
       if (rectsOverlap(playerRect, itemRect)) {
         console.log('Collectible collision!');
         gainHeart();
+        setAura('primary', Date.now());
+        if (sparkleAudio.current) {
+          sparkleAudio.current.currentTime = 0;
+          sparkleAudio.current.play();
+        }
         setCollectible(null);
       } else if (collectible.y > canvasSize.height + 20) {
         setCollectible(null);
@@ -387,6 +428,11 @@ export default function GenericMinigame({ theme }: GenericMinigameProps) {
       if (rectsOverlap(playerRect, itemRect)) {
         console.log('Point item collision!');
         setScore(score + 10);
+        setAura('point', Date.now());
+        if (dingAudio.current) {
+          dingAudio.current.currentTime = 0;
+          dingAudio.current.play();
+        }
         setPointItem(null);
       } else if (pointItem.y > canvasSize.height + 20) {
         setPointItem(null);
@@ -411,6 +457,27 @@ export default function GenericMinigame({ theme }: GenericMinigameProps) {
       if (raf !== undefined) cancelAnimationFrame(raf);
     };
   }, [isInvulnerable, invulnerabilityEndTime, clearInvulnerable]);
+
+  // Flicker/Shake/Aura/Red overlay cleanup
+  useEffect(() => {
+    if (!isFlickering) return;
+    const now = Date.now();
+    const ms = flickerEndTime - now;
+    if (ms <= 0) {
+      clearFlicker();
+      return;
+    }
+    const timeout = setTimeout(() => {
+      clearFlicker();
+    }, ms);
+    return () => clearTimeout(timeout);
+  }, [isFlickering, flickerEndTime, clearFlicker]);
+  useEffect(() => {
+    if (shakeEndTime && Date.now() >= shakeEndTime) clearShake();
+  }, [shakeEndTime, clearShake]);
+  useEffect(() => {
+    if (aura && aura.type && Date.now() - aura.startTime > 500) clearAura();
+  }, [aura, clearAura]);
 
   // Main collision check in game loop
   useEffect(() => {
@@ -512,24 +579,87 @@ export default function GenericMinigame({ theme }: GenericMinigameProps) {
       const playerHeight = canvasSize.height * 0.23;
       const aspectRatio = playerImageRef.current.width / playerImageRef.current.height;
       const playerWidth = playerHeight * aspectRatio;
+      const now = Date.now();
       // Flicker logic
       let flicker = false;
-      const now = Date.now();
-      if (flickerUntil > now) {
-        // Flicker every 100ms
+      if (isFlickering) {
         flicker = Math.floor(now / 100) % 2 === 0;
       }
+      // Shake logic
+      let shakeX = 0;
+      if (shakeEndTime && now < shakeEndTime) {
+        const t = (now - (shakeEndTime - 300)) / 300;
+        shakeX = 5 * Math.sin(2 * Math.PI * t);
+      }
+      // Aura logic
+      if (aura && aura.type && now - aura.startTime < 500) {
+        const auraFade = 1 - (now - aura.startTime) / 500;
+        const auraRadius =
+          aura.type === 'primary'
+            ? Math.max(playerWidth, playerHeight) / 2 + 30
+            : Math.max(playerWidth, playerHeight) / 2 + 20;
+        ctx.save();
+        const grad = ctx.createRadialGradient(
+          playerX + shakeX,
+          canvasSize.height - playerHeight / 2,
+          0,
+          playerX + shakeX,
+          canvasSize.height - playerHeight / 2,
+          auraRadius
+        );
+        grad.addColorStop(
+          0,
+          'rgba(255,255,200,' + (aura.type === 'primary' ? 0.7 * auraFade : 0.5 * auraFade) + ')'
+        );
+        grad.addColorStop(1, 'rgba(255,255,200,0)');
+        ctx.globalAlpha = auraFade;
+        ctx.beginPath();
+        ctx.arc(playerX + shakeX, canvasSize.height - playerHeight / 2, auraRadius, 0, 2 * Math.PI);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.restore();
+      }
+      // Draw player (with flicker and shake)
       ctx.save();
-      if (flicker) ctx.globalAlpha = 0.3;
+      if (flicker) ctx.globalAlpha = 0.5;
       ctx.drawImage(
         playerImageRef.current,
-        playerX - playerWidth / 2,
+        playerX - playerWidth / 2 + shakeX,
         canvasSize.height - playerHeight,
         playerWidth,
         playerHeight
       );
       ctx.globalAlpha = 1;
       ctx.restore();
+      // Red overlay
+      if (redOverlayEnd > now) {
+        const overlayFade = redOverlayEnd - now < 100 ? (redOverlayEnd - now) / 100 : 1;
+        // Draw red-tinted player using offscreen canvas
+        const off = document.createElement('canvas');
+        off.width = Math.ceil(playerWidth);
+        off.height = Math.ceil(playerHeight);
+        const offCtx = off.getContext('2d');
+        if (offCtx) {
+          // Draw player image
+          offCtx.clearRect(0, 0, off.width, off.height);
+          offCtx.drawImage(playerImageRef.current, 0, 0, playerWidth, playerHeight);
+          // Red tint
+          offCtx.globalCompositeOperation = 'source-in';
+          offCtx.fillStyle = 'rgba(255,0,0,' + 0.5 * overlayFade + ')';
+          offCtx.fillRect(0, 0, off.width, off.height);
+          offCtx.globalCompositeOperation = 'source-over';
+          ctx.save();
+          ctx.drawImage(
+            off,
+            playerX - playerWidth / 2 + shakeX,
+            canvasSize.height - playerHeight,
+            playerWidth,
+            playerHeight
+          );
+          ctx.restore();
+        }
+      }
     } else {
       // Fallback to circle if image not loaded
       ctx.beginPath();
