@@ -112,6 +112,21 @@ Each neighborhood features a unique minigame with:
 - Log difficulty and spawn events for debugging.
 - Cap max enemies on screen to prevent overcrowding.
 
+- The minigame ends immediately when the player reaches the target score (100 points), regardless of remaining time. The player is returned to the map.
+- If the timer expires before reaching the target score, the minigame ends as usual.
+
+### 3.7 Player Sprite Flipping Mechanics
+
+- The player sprite is a static PNG, facing left by default.
+- When the player moves right (mouse X increases), the sprite is flipped horizontally to face right.
+- When the player moves left (mouse X decreases), the sprite faces left (default orientation).
+- When idle (no movement), the sprite maintains the last facing direction.
+- The game tracks `facingDirection: 'left' | 'right'` and `previousMouseX: number` in Zustand.
+- On each mouse movement, the game compares the current X to previousMouseX and updates facingDirection accordingly.
+- The canvas rendering loop uses `ctx.scale(-1, 1)` and position adjustment to flip the sprite when facing right, and draws normally when facing left.
+- The hitbox and collision logic are unaffected by the visual flip.
+- This mechanic is standardized across all minigames and works with all character sprites.
+
 ## 4. Features & Screens
 
 ### 4.1 Welcome Screen

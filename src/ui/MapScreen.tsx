@@ -4,7 +4,7 @@ import { MAPTILER_API_KEY } from '../private/apiKeys';
 import MapScreenOverlay from './MapScreenOverlay';
 
 const TEL_AVIV_CENTER = [31.0853, 34.7818];
-const ZOOM = 14.2;
+const ZOOM = 14.3;
 
 const TEL_AVIV_BOUNDS = [
   [32.078, 34.77], // southWest (lat, lng)
@@ -20,6 +20,7 @@ const AREA_TO_MINIGAME: Record<string, string> = {
   Rothschild: 'rothschild',
   "Neve Sha'anan": 'tahanaMerkazit',
   tayelet: 'tayelet',
+  memadion: 'memadion',
 };
 
 export function MapScreen() {
@@ -251,7 +252,7 @@ export function MapScreen() {
                     "Neve Sha'anan",
                     'tayelet',
                     'Neve Tzedek',
-                    'Memadion',
+                    'memadion',
                   ];
                   if (
                     areaName &&

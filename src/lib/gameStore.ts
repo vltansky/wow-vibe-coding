@@ -53,6 +53,10 @@ export type GameStore = {
   clearShake: () => void;
   setAura: (type: 'point' | 'primary', startTime: number) => void;
   clearAura: () => void;
+  facingDirection: 'left' | 'right';
+  setFacingDirection: (dir: 'left' | 'right') => void;
+  previousMouseX: number;
+  setPreviousMouseX: (x: number) => void;
 };
 
 const PERMANENT_HEARTS = 5;
@@ -108,6 +112,8 @@ export const useGameStore = create<GameStore>((set) => ({
       flickerEndTime: 0,
       shakeEndTime: 0,
       aura: { type: null, startTime: 0 },
+      facingDirection: 'left',
+      previousMouseX: 0,
     }),
   selectedMinigame: null,
   setSelectedMinigame: (minigame) => set({ selectedMinigame: minigame }),
@@ -121,4 +127,8 @@ export const useGameStore = create<GameStore>((set) => ({
   clearShake: () => set({ shakeEndTime: 0 }),
   setAura: (type, startTime) => set({ aura: { type, startTime } }),
   clearAura: () => set({ aura: { type: null, startTime: 0 } }),
+  facingDirection: 'left',
+  setFacingDirection: (dir) => set({ facingDirection: dir }),
+  previousMouseX: 0,
+  setPreviousMouseX: (x) => set({ previousMouseX: x }),
 }));

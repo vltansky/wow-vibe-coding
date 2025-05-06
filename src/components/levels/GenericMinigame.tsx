@@ -116,6 +116,11 @@ export default function GenericMinigame({ theme }: GenericMinigameProps) {
   // Red overlay state
   const [redOverlayEnd, setRedOverlayEnd] = useState(0);
 
+  const facingDirection = useGameStore((s) => s.facingDirection);
+  const setFacingDirection = useGameStore((s) => s.setFacingDirection);
+  const previousMouseX = useGameStore((s) => s.previousMouseX);
+  const setPreviousMouseX = useGameStore((s) => s.setPreviousMouseX);
+
   // Set canvas size to window size
   useEffect(() => {
     const updateSize = () => {
@@ -212,18 +217,24 @@ export default function GenericMinigame({ theme }: GenericMinigameProps) {
     };
   }, []);
 
-  // Handle mouse movement
+  // Mouse movement and facing direction
   useEffect(() => {
     function handleMouse(e: MouseEvent) {
       const rect = canvasRef.current?.getBoundingClientRect();
       if (!rect) return;
       const x = e.clientX - rect.left;
+      if (x > previousMouseX) {
+        setFacingDirection('right');
+      } else if (x < previousMouseX) {
+        setFacingDirection('left');
+      }
+      setPreviousMouseX(x);
       setPlayerX(Math.max(PLAYER_RADIUS, Math.min(canvasSize.width - PLAYER_RADIUS, x)));
     }
     const canvas = canvasRef.current;
     canvas?.addEventListener('mousemove', handleMouse);
     return () => canvas?.removeEventListener('mousemove', handleMouse);
-  }, [canvasSize.width]);
+  }, [canvasSize.width, previousMouseX, setFacingDirection, setPreviousMouseX]);
 
   // Enemy spawner
   useEffect(() => {
@@ -363,12 +374,18 @@ export default function GenericMinigame({ theme }: GenericMinigameProps) {
     return () => clearInterval(interval);
   }, [minigameStartTime, running]);
 
-  // End minigame after 30s
+  // End minigame after reaching target score or after 30s
   useEffect(() => {
     if (!running) return;
+    if (score >= 100 && selectedNeighborhood) {
+      setRunning(false);
+      completeNeighborhood(selectedNeighborhood);
+      setTimeout(() => setGameState('map'), 400);
+      return;
+    }
     if (remainingTime <= 0) {
       setRunning(false);
-      // Score threshold
+      // Only complete neighborhood if score threshold met
       if (score >= 100 && selectedNeighborhood) {
         completeNeighborhood(selectedNeighborhood);
       }
@@ -575,17 +592,14 @@ export default function GenericMinigame({ theme }: GenericMinigameProps) {
 
     // Player
     if (playerImageRef.current && selectedCharacter) {
-      // Draw player character image, feet anchored to bottom
       const playerHeight = canvasSize.height * 0.23;
       const aspectRatio = playerImageRef.current.width / playerImageRef.current.height;
       const playerWidth = playerHeight * aspectRatio;
       const now = Date.now();
-      // Flicker logic
       let flicker = false;
       if (isFlickering) {
         flicker = Math.floor(now / 100) % 2 === 0;
       }
-      // Shake logic
       let shakeX = 0;
       if (shakeEndTime && now < shakeEndTime) {
         const t = (now - (shakeEndTime - 300)) / 300;
@@ -623,13 +637,26 @@ export default function GenericMinigame({ theme }: GenericMinigameProps) {
       // Draw player (with flicker and shake)
       ctx.save();
       if (flicker) ctx.globalAlpha = 0.5;
-      ctx.drawImage(
-        playerImageRef.current,
-        playerX - playerWidth / 2 + shakeX,
-        canvasSize.height - playerHeight,
-        playerWidth,
-        playerHeight
-      );
+      if (facingDirection === 'right') {
+        ctx.save();
+        ctx.scale(-1, 1);
+        ctx.drawImage(
+          playerImageRef.current,
+          -(playerX + playerWidth / 2 - shakeX),
+          canvasSize.height - playerHeight,
+          playerWidth,
+          playerHeight
+        );
+        ctx.restore();
+      } else {
+        ctx.drawImage(
+          playerImageRef.current,
+          playerX - playerWidth / 2 + shakeX,
+          canvasSize.height - playerHeight,
+          playerWidth,
+          playerHeight
+        );
+      }
       ctx.globalAlpha = 1;
       ctx.restore();
       // Red overlay
