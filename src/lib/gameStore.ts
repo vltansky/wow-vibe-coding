@@ -43,6 +43,20 @@ export type GameStore = {
   invulnerabilityEndTime: number;
   setInvulnerable: (until: number) => void;
   clearInvulnerable: () => void;
+  isFlickering: boolean;
+  flickerEndTime: number;
+  shakeEndTime: number;
+  aura: { type: 'point' | 'primary' | null; startTime: number };
+  setFlicker: (endTime: number) => void;
+  clearFlicker: () => void;
+  setShake: (endTime: number) => void;
+  clearShake: () => void;
+  setAura: (type: 'point' | 'primary', startTime: number) => void;
+  clearAura: () => void;
+  facingDirection: 'left' | 'right';
+  setFacingDirection: (dir: 'left' | 'right') => void;
+  previousMouseX: number;
+  setPreviousMouseX: (x: number) => void;
 };
 
 const PERMANENT_HEARTS = 5;
@@ -94,6 +108,12 @@ export const useGameStore = create<GameStore>((set) => ({
       collectedItems: [],
       isInvulnerable: false,
       invulnerabilityEndTime: 0,
+      isFlickering: false,
+      flickerEndTime: 0,
+      shakeEndTime: 0,
+      aura: { type: null, startTime: 0 },
+      facingDirection: 'left',
+      previousMouseX: 0,
     }),
   selectedMinigame: null,
   setSelectedMinigame: (minigame) => set({ selectedMinigame: minigame }),
@@ -101,4 +121,14 @@ export const useGameStore = create<GameStore>((set) => ({
   invulnerabilityEndTime: 0,
   setInvulnerable: (until) => set({ isInvulnerable: true, invulnerabilityEndTime: until }),
   clearInvulnerable: () => set({ isInvulnerable: false, invulnerabilityEndTime: 0 }),
+  setFlicker: (endTime) => set({ isFlickering: true, flickerEndTime: endTime }),
+  clearFlicker: () => set({ isFlickering: false, flickerEndTime: 0 }),
+  setShake: (endTime) => set({ shakeEndTime: endTime }),
+  clearShake: () => set({ shakeEndTime: 0 }),
+  setAura: (type, startTime) => set({ aura: { type, startTime } }),
+  clearAura: () => set({ aura: { type: null, startTime: 0 } }),
+  facingDirection: 'left',
+  setFacingDirection: (dir) => set({ facingDirection: dir }),
+  previousMouseX: 0,
+  setPreviousMouseX: (x) => set({ previousMouseX: x }),
 }));

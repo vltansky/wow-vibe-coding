@@ -2,7 +2,6 @@ import { useGameStore, GameStore, Collectible } from '../lib/gameStore';
 
 const heartIcon = '❤️';
 const emptyHeartIcon = '🤍';
-const tempHeartIcon = '💛';
 const hummusIcon = '🥣';
 const falafelIcon = '🥙';
 
@@ -15,8 +14,8 @@ type HUDProps = {
 };
 
 const TimeWheel = ({ remainingTime = 30 }: { remainingTime: number }) => {
-  const size = 54;
-  const stroke = 6;
+  const size = 80;
+  const stroke = 8;
   const radius = (size - stroke) / 2;
   const center = size / 2;
   const progress = Math.max(0, Math.min(1, remainingTime / 30));
@@ -50,9 +49,9 @@ const TimeWheel = ({ remainingTime = 30 }: { remainingTime: number }) => {
       />
       <text
         x={center}
-        y={center + 6}
+        y={center + 10}
         textAnchor="middle"
-        fontSize="16"
+        fontSize="28"
         fill="#222"
         fontWeight="bold"
       >
@@ -71,31 +70,29 @@ const HUD = ({
 }: HUDProps) => {
   const health = useGameStore((s: GameStore) => s.health);
   const collectedItems = useGameStore((s: GameStore) => s.collectedItems);
-  const completedNeighborhoods = useGameStore((s) => s.completedNeighborhoods);
-  const totalAreas = 9; // Update if you add/remove playable areas
 
   return (
     <div
-      className={`pointer-events-none absolute top-0 left-0 z-50 flex w-full flex-col items-center gap-4 p-6 ${extraTopMargin ? 'mt-32 md:mt-40' : ''}`}
+      className={`retro-hud pointer-events-none absolute top-0 left-0 z-50 flex w-full flex-col items-center gap-4 p-6 ${extraTopMargin ? 'mt-32 md:mt-40' : ''}`}
     >
       {remainingTime !== undefined && <TimeWheel remainingTime={remainingTime} />}
       {neighborhoodName && (
-        <div className="pointer-events-auto mb-2 rounded bg-white/90 px-6 py-2 text-lg font-bold text-gray-900 shadow">
+        <div className="retro-hud-panel pointer-events-auto mb-2 rounded bg-white/90 px-6 py-2 text-lg font-bold text-gray-900 shadow">
           {neighborhoodName}
         </div>
       )}
       {typeof minigameScore === 'number' && minigameInstruction && (
         <div className="pointer-events-auto mb-6 flex flex-col items-center gap-2">
-          <div className="rounded bg-white/90 px-8 py-3 text-2xl font-bold text-gray-900 shadow">
+          <div className="retro-hud-panel rounded bg-white/90 px-8 py-3 text-2xl font-bold text-gray-900 shadow">
             {minigameInstruction}
           </div>
-          <div className="rounded bg-white/90 px-8 py-3 text-xl font-bold text-blue-700 shadow">
+          <div className="retro-hud-panel rounded bg-white/90 px-8 py-3 text-xl font-bold text-blue-700 shadow">
             Score: {minigameScore}/100
           </div>
         </div>
       )}
-      <div className="pointer-events-auto mb-4 flex gap-3">
-        {/* Permanent hearts (1-5) */}
+      <div className="retro-hud-panel pointer-events-auto mb-4 flex gap-3">
+        {/* Hearts (1-5) */}
         {Array.from({ length: 5 }).map((_, i: number) =>
           i < health.permanentHearts ? (
             <span key={i} style={{ opacity: 1, color: '#e63946', fontSize: 32 }}>
@@ -107,21 +104,18 @@ const HUD = ({
             </span>
           )
         )}
-        {/* Temporary hearts (6+) */}
-        {Array.from({ length: health.temporaryHearts }).map((_, i: number) => (
-          <span key={`temp-${i}`} style={{ color: '#ffd700', fontSize: 32 }}>
-            {tempHeartIcon}
-          </span>
-        ))}
       </div>
-      <div className="pointer-events-auto mb-2 rounded bg-white/80 px-6 py-2 text-base text-gray-700 shadow">
-        Areas completed {completedNeighborhoods.length} out of {totalAreas}
-      </div>
-      <span className="mt-2 flex gap-2">
-        {collectedItems.map((item: Collectible, i: number) =>
-          item === 'hummus' ? <span key={i}>{hummusIcon}</span> : <span key={i}>{falafelIcon}</span>
-        )}
-      </span>
+      {collectedItems.length > 0 && (
+        <span className="retro-hud-panel mt-2 flex gap-2">
+          {collectedItems.map((item: Collectible, i: number) =>
+            item === 'hummus' ? (
+              <span key={i}>{hummusIcon}</span>
+            ) : (
+              <span key={i}>{falafelIcon}</span>
+            )
+          )}
+        </span>
+      )}
     </div>
   );
 };

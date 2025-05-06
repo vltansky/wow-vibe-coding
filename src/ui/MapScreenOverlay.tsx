@@ -45,14 +45,12 @@ const MapScreenOverlay = ({ selectedCharacter, gameState }: MapScreenOverlayProp
         }}
       >
         <div
+          className="retro-hud-panel"
           style={{
-            background: 'rgba(255,255,255,0.95)',
-            borderRadius: 16,
             padding: '20px 48px',
+            color: '#1976d2',
             fontSize: 28,
             fontWeight: 700,
-            color: '#1976d2',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
             pointerEvents: 'auto',
           }}
         >
@@ -62,15 +60,13 @@ const MapScreenOverlay = ({ selectedCharacter, gameState }: MapScreenOverlayProp
 
       {/* Legend (top right) */}
       <div
+        className="retro-hud-panel"
         style={{
           position: 'absolute',
           top: 32,
           right: 32,
           zIndex: 10,
-          background: 'rgba(255,255,255,0.95)',
-          borderRadius: 10,
           padding: '16px 20px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
           fontSize: 18,
           minWidth: 180,
         }}
