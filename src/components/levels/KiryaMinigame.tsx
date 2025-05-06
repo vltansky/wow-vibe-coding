@@ -1,5 +1,56 @@
 import { useEffect, useRef, useState } from 'react';
-import { useGameStore } from '../../lib/gameStore';
+import { useGameStore, GameStore } from '../../lib/gameStore';
+
+// Custom HUD component specifically for KiryaMinigame (no yellow dots)
+const KiryaHUD = ({ 
+  collectedDocuments, 
+  timeLeft 
+}: { 
+  collectedDocuments: string[];
+  timeLeft: number;
+}) => {
+  // Only use permanent hearts
+  const permanentHearts = useGameStore((s: GameStore) => s.health.permanentHearts);
+
+  return (
+    <div className="pointer-events-none absolute top-0 left-0 z-50 flex w-full flex-col items-center gap-4 p-6">
+      <div className="pointer-events-auto mb-6 flex flex-col items-center gap-2">
+        <div className="rounded bg-white/90 px-8 py-3 text-2xl font-bold text-gray-900 shadow">
+          Collect all 3 government documents at Kiryat HaMemshala!
+        </div>
+        <div className="rounded bg-white/90 px-8 py-3 text-xl font-bold text-red-600 shadow">
+          Avoid the security guards!
+        </div>
+      </div>
+      
+      {/* Hearts - Only permanent hearts, no temporary/yellow hearts */}
+      <div className="pointer-events-auto mb-4 flex gap-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <span 
+            key={i} 
+            style={{ 
+              opacity: 1, 
+              color: '#e63946', 
+              fontSize: 32 
+            }}
+          >
+            {i < permanentHearts ? '❤️' : '🤍'}
+          </span>
+        ))}
+      </div>
+      
+      {/* Documents counter */}
+      <div className="pointer-events-auto rounded bg-white/90 px-8 py-3 text-xl font-bold text-gray-900 shadow">
+        {collectedDocuments.length} / 3 Documents Collected
+      </div>
+      
+      {/* Timer */}
+      <div className="pointer-events-auto mt-2 rounded bg-white/90 px-8 py-2 text-lg font-bold shadow" style={{ color: timeLeft <= 5000 ? '#ff0000' : '#333' }}>
+        Time: {Math.ceil(timeLeft / 1000)}s
+      </div>
+    </div>
+  );
+};
 
 type KiryaMinigameProps = {
   onWin: () => void;
@@ -14,19 +65,23 @@ const DOCUMENTS = {
 };
 
 // Game duration in milliseconds
-const GAME_DURATION = 10000; // 10 seconds
+const GAME_DURATION = 8000; // 8 seconds (reduced from 10)
 
 // Time each document stays in one position before moving or hiding
-const DOCUMENT_STAY_DURATION = 500; // 0.5 seconds
-const DOCUMENT_HIDE_DURATION = 300; // 0.3 seconds
+const DOCUMENT_STAY_DURATION = 400; // 0.4 seconds (reduced from 0.5)
+const DOCUMENT_HIDE_DURATION = 400; // 0.4 seconds (increased from 0.3)
 
 // Guard constants
 const PLAYER_RADIUS = 24;
 const GUARD_MIN_SIZE = 80;
 const GUARD_MAX_SIZE = 120;
-const GUARD_SPEED = 3; // Horizontal speed
-const GUARD_SPAWN_INTERVAL = 2000; // 2 seconds between guard spawns
-const GUARD_VISIBLE_DURATION = 3000; // Guards visible for 3 seconds
+const GUARD_SPEED = 4; // Horizontal speed (increased from 3)
+const GUARD_SPAWN_INTERVAL = 1500; // 1.5 seconds between guard spawns (reduced from 2)
+const GUARD_VISIBLE_DURATION = 3500; // Guards visible for 3.5 seconds (increased from 3)
+
+// Additional hard mode settings
+const MAX_GUARDS_ON_SCREEN = 5; // Maximum number of guards that can be on screen at once
+const SMALL_DOCUMENT_SCALE = 0.8; // Make documents smaller and harder to click
 
 export default function KiryaMinigame({ onWin, onLose }: KiryaMinigameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -66,6 +121,7 @@ export default function KiryaMinigame({ onWin, onLose }: KiryaMinigameProps) {
       collected: boolean; 
       lastMoved: number;
       visible: boolean;
+      scale: number; // For random sizing to make harder
     }[]
   >([]);
   
@@ -79,13 +135,15 @@ export default function KiryaMinigame({ onWin, onLose }: KiryaMinigameProps) {
       direction: number; // 1 = right, -1 = left
       visible: boolean;
       visibleUntil: number;
+      speed: number; // Variable speed for different guards
     }[]
   >([]);
 
   const selectedCharacter = useGameStore(s => s.selectedCharacter);
-  const loseHeart = useGameStore((s) => s.loseHeart);
-  const hearts = useGameStore((s) => s.filledPermanentHearts + s.temporaryHearts);
-  const setGameState = useGameStore((s) => s.setGameState);
+  const loseHeart = useGameStore((s: GameStore) => s.loseHeart);
+  const hearts = useGameStore((s: GameStore) => s.health.permanentHearts);
+  const setGameState = useGameStore(s => s.setGameState);
+  const permanentHearts = useGameStore((s: GameStore) => s.health.permanentHearts); // For UI display
 
   // Character images
   const characterImages = {
@@ -133,6 +191,16 @@ export default function KiryaMinigame({ onWin, onLose }: KiryaMinigameProps) {
     // Keep guards away from the very top and bottom
     const margin = 150;
     return Math.random() * (canvasSize.height - 2 * margin) + margin;
+  };
+  
+  // Random document scale (for hard mode)
+  const randomDocumentScale = () => {
+    return SMALL_DOCUMENT_SCALE + (Math.random() * 0.2); // Between 0.8 and 1.0
+  };
+  
+  // Random guard speed (for hard mode)
+  const randomGuardSpeed = () => {
+    return GUARD_SPEED + (Math.random() * 2); // Between base speed and +2
   };
 
   // Load images: player, documents, guards, and background
@@ -213,7 +281,8 @@ export default function KiryaMinigame({ onWin, onLose }: KiryaMinigameProps) {
           spawnTime: now,
           collected: false,
           lastMoved: now,
-          visible: true
+          visible: true,
+          scale: randomDocumentScale() // Random smaller scale for harder mode
         };
       });
       
@@ -252,7 +321,8 @@ export default function KiryaMinigame({ onWin, onLose }: KiryaMinigameProps) {
               x,
               y,
               visible: true, // Show it again
-              lastMoved: now
+              lastMoved: now,
+              scale: randomDocumentScale() // New random scale each time
             };
           }
           
@@ -269,6 +339,9 @@ export default function KiryaMinigame({ onWin, onLose }: KiryaMinigameProps) {
     if (!running || !canvasSize.width) return;
     
     const spawnGuard = () => {
+      // Don't spawn more than MAX_GUARDS_ON_SCREEN
+      if (guards.length >= MAX_GUARDS_ON_SCREEN) return;
+      
       const guardSize = randomGuardSize();
       const direction = Math.random() > 0.5 ? 1 : -1; // Randomly go left or right
       // Start position: left side of screen if going right, right side if going left
@@ -285,7 +358,8 @@ export default function KiryaMinigame({ onWin, onLose }: KiryaMinigameProps) {
           spawnTime: now,
           direction,
           visible: true,
-          visibleUntil: now + GUARD_VISIBLE_DURATION
+          visibleUntil: now + GUARD_VISIBLE_DURATION,
+          speed: randomGuardSpeed() // Random speed for each guard
         }
       ]);
     };
@@ -296,7 +370,7 @@ export default function KiryaMinigame({ onWin, onLose }: KiryaMinigameProps) {
     // Spawn guards periodically
     const intervalId = setInterval(spawnGuard, GUARD_SPAWN_INTERVAL);
     return () => clearInterval(intervalId);
-  }, [running, canvasSize.width]);
+  }, [running, canvasSize.width, guards.length]);
 
   // Game timer
   useEffect(() => {
@@ -333,8 +407,8 @@ export default function KiryaMinigame({ onWin, onLose }: KiryaMinigameProps) {
             // Update visibility based on time
             const visible = now < guard.visibleUntil;
             
-            // Update position
-            const newX = guard.x + (guard.direction * GUARD_SPEED);
+            // Update position using individual guard speed
+            const newX = guard.x + (guard.direction * guard.speed);
             
             return { 
               ...guard, 
@@ -460,7 +534,8 @@ export default function KiryaMinigame({ onWin, onLose }: KiryaMinigameProps) {
       
       const docImg = documentImagesRef.current[doc.type];
       if (docImg) {
-        const docSize = 80;
+        const baseDocSize = 80;
+        const docSize = baseDocSize * doc.scale; // Apply scale factor
         const aspectRatio = docImg.width / docImg.height;
         const docWidth = docSize * aspectRatio;
         
@@ -482,7 +557,7 @@ export default function KiryaMinigame({ onWin, onLose }: KiryaMinigameProps) {
       } else {
         // Fallback circle if image not loaded
         ctx.beginPath();
-        ctx.arc(doc.x, doc.y, 25, 0, 2 * Math.PI);
+        ctx.arc(doc.x, doc.y, 25 * doc.scale, 0, 2 * Math.PI);
         ctx.fillStyle = '#e0c066';
         ctx.fill();
       }
@@ -560,27 +635,6 @@ export default function KiryaMinigame({ onWin, onLose }: KiryaMinigameProps) {
       ctx.fill();
     }
     
-    // Draw documents counter at the top center
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.fillRect(canvasSize.width / 2 - 150, 20, 300, 60);
-    ctx.font = 'bold 24px Arial';
-    ctx.fillStyle = '#333';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(
-      `${collectedDocuments.length} / 3 Documents Collected`,
-      canvasSize.width / 2,
-      50
-    );
-    
-    // Draw timer
-    const seconds = Math.ceil(timeLeft / 1000);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.fillRect(canvasSize.width / 2 - 50, 90, 100, 40);
-    ctx.font = 'bold 20px Arial';
-    ctx.fillStyle = seconds <= 5 ? '#ff0000' : '#333';
-    ctx.fillText(`${seconds}s`, canvasSize.width / 2, 110);
-    
   }, [
     documents,
     playerX,
@@ -609,7 +663,10 @@ export default function KiryaMinigame({ onWin, onLose }: KiryaMinigameProps) {
         const dy = doc.y - playerY;
         const dist = Math.sqrt(dx * dx + dy * dy);
         
-        if (dist < playerHitboxRadius + 30) {
+        // Scale the hit area based on the document scale (smaller docs = harder to hit)
+        const docHitboxRadius = 30 * doc.scale;
+        
+        if (dist < playerHitboxRadius + docHitboxRadius) {
           // Document collected
           if (!collectedDocuments.includes(doc.type)) {
             setCollectedDocuments(prev => [...prev, doc.type]);
@@ -689,18 +746,10 @@ export default function KiryaMinigame({ onWin, onLose }: KiryaMinigameProps) {
         cursor: 'none',
       }}
     >
-      <div
-        className="pointer-events-none absolute top-0 left-0 z-50 flex w-full flex-col items-center gap-4 p-6"
-      >
-        <div className="pointer-events-auto mb-6 flex flex-col items-center gap-2">
-          <div className="rounded bg-white/90 px-8 py-3 text-2xl font-bold text-gray-900 shadow">
-            Collect all 3 government documents at Kiryat HaMemshala!
-          </div>
-          <div className="rounded bg-white/90 px-8 py-3 text-xl font-bold text-red-600 shadow">
-            Avoid the security guards!
-          </div>
-        </div>
-      </div>
+      <KiryaHUD 
+        collectedDocuments={collectedDocuments} 
+        timeLeft={timeLeft}
+      />
       <canvas
         ref={canvasRef}
         width={canvasSize.width}
