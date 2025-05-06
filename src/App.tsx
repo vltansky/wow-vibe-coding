@@ -14,7 +14,8 @@ function App() {
 
   return (
     <>
-      {(gameState === 'map' || gameState === 'minigame') && <HUD />}
+      {gameState === 'map' && <HUD extraTopMargin />}
+      {gameState === 'minigame' && <HUD />}
       {gameState === 'welcome' && <WelcomeScreen />}
       {gameState === 'map' && <MapScreen />}
       {gameState === 'transition' && <BusTransition onComplete={() => setGameState('minigame')} />}
