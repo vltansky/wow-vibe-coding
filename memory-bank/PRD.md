@@ -1,24 +1,218 @@
-Outlines the why and what of your game idea.
+# TLV Escape: Game Product Requirements Document (PRD)
 
-# Product Requirements
+## 1. Executive Summary
 
-## Goal
+TLV Escape is a casual, arcade-style game that takes players on a virtual tour of Tel Aviv neighborhoods through a collection of engaging minigames. Players select a character and navigate a map of Tel Aviv, visiting different neighborhoods to play unique minigames, collect items, and complete challenges, with the ultimate goal of exploring the entire city.
 
-Create a 1v1 magic duel arena using Three.js, playable in browser.
+## 2. Product Overview
 
-## Target Audience
+### 2.1 Game Concept
 
-Casual indie gamers who enjoy fast, stylized gameplay.
+TLV Escape is an arcade-style game that blends exploration, collection, and quick reflex mechanics to create an engaging tour of Tel Aviv. Players navigate through a map of Tel Aviv, selecting neighborhoods to visit and complete minigames.
 
-## Core Features
+### 2.2 Core Game Loop
 
-- WASD movement + mouse-aimed spellcasting
-- 3 spell types (fireball, shield, dash)
-- Simple mana system
-- Health bar and win condition
-- Stylized VFX (particles, glow)
+1. Select a character from five unique personalities
+2. Navigate the Tel Aviv map
+3. Select a neighborhood to visit
+4. Travel to the neighborhood via bus transition animation
+5. Complete the neighborhood-specific minigame
+6. Return to the map to select the next neighborhood
+7. Continue until all neighborhoods are completed or player runs out of hearts
 
-## Non-Goals
+### 2.3 Target Audience
 
-- Multiplayer
-- Persistent leveling
+- Casual gamers looking for quick, engaging play sessions
+- Tourists or visitors interested in exploring Tel Aviv in a gamified way
+- Tel Aviv residents who want to experience their city in a fun, digital format
+
+## 3. Game Mechanics
+
+### 3.1 Characters
+
+Players can choose from five distinct characters, each with their own visual style:
+
+- Nimrod
+- Liat
+- Reuven
+- Josef
+- Hila
+
+### 3.2 Health System
+
+- 5 permanent hearts representing player health
+- Temporary hearts that can be collected as power-ups
+- Hearts are lost when colliding with enemies in minigames
+- Game ends when all hearts are depleted
+
+### 3.3 Map Navigation
+
+- Interactive map of Tel Aviv with clickable neighborhoods
+- Completed neighborhoods are visually distinct
+- Selecting a neighborhood triggers a bus transition animation
+
+### 3.4 Minigames
+
+Each neighborhood features a unique minigame with:
+
+- Themed enemies and collectibles relevant to the neighborhood
+- Scrolling background representing the neighborhood
+- Timed gameplay (default: 20 seconds)
+- Score system based on collecting items and avoiding enemies
+- Win condition: survive until time expires
+- Loss condition: collide with too many enemies and lose all hearts
+
+### 3.5 Collectibles
+
+- Primary collectibles like hummus and falafel
+- Point items that increase score
+- Hearts that restore health
+
+## 4. Features & Screens
+
+### 4.1 Welcome Screen
+
+- Character selection
+- Game introduction
+- Start game button
+
+### 4.2 Map Screen
+
+- Interactive Tel Aviv map using Leaflet
+- Neighborhood boundaries with hover effects
+- Tooltips displaying neighborhood names
+- Visual indication of completed areas
+
+### 4.3 Bus Transition
+
+- Animation showing travel between neighborhoods
+- Transitions from map to minigame
+
+### 4.4 Minigame Screen
+
+- Character controlled by mouse movement
+- Descending enemies to avoid
+- Collectibles to gather
+- Score display
+- Timer visualization
+- Visual feedback for collisions
+
+### 4.5 HUD (Heads-Up Display)
+
+- Health/hearts display
+- Score counter
+- Timer
+- Neighborhood name
+
+### 4.6 Game Over Screen
+
+- Final score
+- Restart option
+
+### 4.7 Victory Screen
+
+- Congratulations message
+- Final score
+- Option to play again
+
+## 5. Neighborhoods & Minigames
+
+The following neighborhoods are implemented with corresponding minigames:
+
+1. **Florentin**
+
+   - Default minigame with street art-themed obstacles
+
+2. **Old North**
+
+   - Beach and cafe-themed minigame
+
+3. **Tayelet (Promenade)**
+
+   - Sea-themed minigame with beach elements
+
+4. **Kerem HaTeimanim**
+
+   - Food market-themed gameplay
+
+5. **Park HaMesila**
+
+   - Park and nature-themed elements
+
+6. **Rothschild Boulevard**
+
+   - Business and culture-themed challenges
+
+7. **Neve Sha'anan**
+
+   - Bus station and market elements
+
+8. **Neve Tzedek**
+
+   - Historic neighborhood theme
+
+9. **Memadion**
+   - Water park-themed obstacles
+
+## 6. Technical Implementation
+
+### 6.1 Core Technologies
+
+- React for UI components and game structure
+- TypeScript for type safety
+- Zustand for state management
+- HTML Canvas for game rendering
+- Leaflet for map integration
+
+### 6.2 State Management
+
+- Game state (welcome, map, transition, minigame, gameover, victory)
+- Character selection
+- Neighborhood selection and completion tracking
+- Health tracking (permanent and temporary hearts)
+- Collectible inventory
+- Score system
+
+### 6.3 Game Engine Components
+
+- Canvas-based rendering
+- Collision detection
+- Player input handling
+- Enemy and collectible spawning systems
+- Animation framework
+- Asset preloading
+
+## 7. Future Enhancements
+
+### 7.1 Additional Neighborhoods
+
+- Add remaining Tel Aviv neighborhoods with unique minigames
+
+### 7.2 Character Special Abilities
+
+- Implement unique abilities for each character
+
+### 7.3 Leaderboards
+
+- Add persistent high score tracking
+
+### 7.4 Achievement System
+
+- Create unlockable achievements for gameplay milestones
+
+### 7.5 Mobile Support
+
+- Adapt controls and UI for mobile devices
+
+## 8. Success Metrics
+
+- Completion rate: % of players who complete all neighborhoods
+- Retention: average number of play sessions per user
+- Favorite neighborhoods: tracking which minigames are most frequently played
+- Average score: tracking player performance
+- Character popularity: tracking character selection rates
+
+---
+
+Document Version: 1.0
+Last Updated: [Current Date]

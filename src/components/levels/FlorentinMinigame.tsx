@@ -9,15 +9,18 @@ type FlorentinMinigameProps = {
 const florentinTheme: MinigameTheme = {
   enemyImage: '/drop.png',
   collectibleImages: {
-    hummus: '/falafel.png', // Using falafel.png for both for now
+    pita: '/pita.png', // Using falafel.png for both for now
     falafel: '/falafel.png',
+  },
+  pointItems: {
+    hummus: '/falafel.png',
   },
   backgroundImage: '/combined_street_panorama.png',
   instructionText: 'Avoid the AC water drops!',
   enemyMinSize: 80,
   enemyMaxSize: 140,
-  enemySpeed: 3,
-  enemySpawnInterval: 900,
+  enemySpeed: 3.3,
+  enemySpawnInterval: 810,
   backgroundOverlayColor: 'rgba(245, 245, 220, 0.3)',
 };
 

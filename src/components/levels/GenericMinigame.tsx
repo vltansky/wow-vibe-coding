@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../lib/gameStore';
+import HUD from '../../ui/HUD';
 
 export type MinigameTheme = {
   // Game elements
   enemyImage: string;
   collectibleImages: Record<string, string>;
   backgroundImage: string;
+  pointItems: Record<string, string>;
 
   // Game text
   instructionText: string;
@@ -33,8 +35,8 @@ const characterImages = {
   nimrod: '/HIP.PNG',
   liat: '/POSH.png',
   reuven: '/YEMANI.PNG',
-  nevorish: '/NEVORISH.png',
-  mom: '/MOM.png',
+  josef: '/NEVORISH.png',
+  hila: '/MOM.png',
 };
 
 export default function GenericMinigame({
@@ -46,21 +48,33 @@ export default function GenericMinigame({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const [playerX, setPlayerX] = useState(0);
-  const [enemies, setEnemies] = useState<{ x: number; y: number; size: number }[]>([]);
+  const [enemies, setEnemies] = useState<
+    { x: number; y: number; size: number; spawnTime: number }[]
+  >([]);
   const [collectible, setCollectible] = useState<{
     x: number;
     y: number;
     type: string;
+    spawnTime: number;
   } | null>(null);
   const [running, setRunning] = useState(true);
   const [lifeLost, setLifeLost] = useState(false);
   const animationRef = useRef<number>();
-  const startTime = useRef<number>(Date.now());
   const playerImageRef = useRef<HTMLImageElement | null>(null);
   const enemyImageRef = useRef<HTMLImageElement | null>(null);
   const collectibleImagesRef = useRef<Record<string, HTMLImageElement | null>>({});
   const backgroundImageRef = useRef<HTMLImageElement | null>(null);
   const bgOffsetRef = useRef(0);
+  const [score, setScore] = useState(0);
+  const [pointItem, setPointItem] = useState<{
+    x: number;
+    y: number;
+    type: string;
+    spawnTime: number;
+  } | null>(null);
+  const pointItemImagesRef = useRef<Record<string, HTMLImageElement | null>>({});
+  const boomImageRef = useRef<HTMLImageElement | null>(null);
+  const [flickerUntil, setFlickerUntil] = useState<number>(0);
 
   const loseHeart = useGameStore((s) => s.loseHeart);
   const gainHeart = useGameStore((s) => s.gainHeart);
@@ -71,11 +85,13 @@ export default function GenericMinigame({
   // Set canvas size to window size
   useEffect(() => {
     const updateSize = () => {
-      setCanvasSize({ width: window.innerWidth, height: window.innerHeight });
-      setPlayerX(window.innerWidth / 2);
+      const width = Math.round(window.innerWidth);
+      const height = Math.round(window.innerHeight);
+      setCanvasSize({ width, height });
+      setPlayerX(width / 2);
       if (canvasRef.current) {
-        canvasRef.current.width = window.innerWidth;
-        canvasRef.current.height = window.innerHeight;
+        canvasRef.current.width = width;
+        canvasRef.current.height = height;
       }
     };
     updateSize();
@@ -98,6 +114,12 @@ export default function GenericMinigame({
   // Get random collectible type
   const getRandomCollectibleType = (): string => {
     const types = Object.keys(theme.collectibleImages);
+    return types[Math.floor(Math.random() * types.length)];
+  };
+
+  // Get random point item type
+  const getRandomPointItemType = (): string => {
+    const types = Object.keys(theme.pointItems);
     return types[Math.floor(Math.random() * types.length)];
   };
 
@@ -136,6 +158,26 @@ export default function GenericMinigame({
     };
   }, [selectedCharacter, theme]);
 
+  // Load point item images
+  useEffect(() => {
+    Object.entries(theme.pointItems).forEach(([type, src]) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => {
+        pointItemImagesRef.current[type] = img;
+      };
+    });
+  }, [theme]);
+
+  // Load boom image
+  useEffect(() => {
+    const boomImg = new Image();
+    boomImg.src = '/boom.png';
+    boomImg.onload = () => {
+      boomImageRef.current = boomImg;
+    };
+  }, []);
+
   // Handle mouse movement
   useEffect(() => {
     function handleMouse(e: MouseEvent) {
@@ -154,7 +196,10 @@ export default function GenericMinigame({
     if (!running || !canvasSize.width) return;
     let timeoutId: NodeJS.Timeout;
     function spawnEnemy() {
-      setEnemies((d) => [...d, { x: randomX(), y: -30, size: randomEnemySize() }]);
+      setEnemies((d) => [
+        ...d,
+        { x: randomX(), y: -30, size: randomEnemySize(), spawnTime: Date.now() },
+      ]);
       timeoutId = setTimeout(spawnEnemy, theme.enemySpawnInterval);
     }
     spawnEnemy();
@@ -170,11 +215,28 @@ export default function GenericMinigame({
         x: randomX(),
         y: 0,
         type: getRandomCollectibleType(),
+        spawnTime: Date.now(),
       });
     };
     const timer = setTimeout(spawn, 5000);
     return () => clearTimeout(timer);
   }, [running, collectible, canvasSize.width]);
+
+  // Occasionally spawn a point item
+  useEffect(() => {
+    if (!running || pointItem || !canvasSize.width) return;
+    // Spawn a point item every 3 seconds
+    const spawn = () => {
+      setPointItem({
+        x: randomX(),
+        y: 0,
+        type: getRandomPointItemType(),
+        spawnTime: Date.now(),
+      });
+    };
+    const timer = setTimeout(spawn, 3000);
+    return () => clearTimeout(timer);
+  }, [running, pointItem, canvasSize.width]);
 
   // Draw
   useEffect(() => {
@@ -191,23 +253,16 @@ export default function GenericMinigame({
       // Calculate proper scaling to maintain aspect ratio
       // Scale to fit the height of the canvas perfectly
       const scale = canvasSize.height / imgH;
-      const scaledWidth = imgW * scale;
-
-      // Calculate offset based on scaled dimensions
-      const offset = bgOffsetRef.current % scaledWidth;
+      const scaledWidth = Math.ceil(imgW * scale);
+      const scaledHeight = Math.ceil(canvasSize.height);
+      const offset = Math.round(bgOffsetRef.current % scaledWidth);
 
       // Draw the background image for continuous horizontal scrolling
       // First copy
-      ctx.drawImage(backgroundImageRef.current, -offset, 0, scaledWidth, canvasSize.height);
+      ctx.drawImage(backgroundImageRef.current, -offset, 0, scaledWidth, scaledHeight);
 
       // Second copy for seamless scrolling
-      ctx.drawImage(
-        backgroundImageRef.current,
-        scaledWidth - offset,
-        0,
-        scaledWidth,
-        canvasSize.height
-      );
+      ctx.drawImage(backgroundImageRef.current, scaledWidth - offset, 0, scaledWidth, scaledHeight);
 
       // Add semi-transparent overlay for better visibility
       ctx.fillStyle = theme.backgroundOverlayColor || 'rgba(245, 245, 220, 0.3)';
@@ -220,18 +275,28 @@ export default function GenericMinigame({
 
     // Player
     if (playerImageRef.current && selectedCharacter) {
-      // Draw player character image
-      const playerHeight = canvasSize.height * 0.23; // Scale with canvas
+      // Draw player character image, feet anchored to bottom
+      const playerHeight = canvasSize.height * 0.23;
       const aspectRatio = playerImageRef.current.width / playerImageRef.current.height;
       const playerWidth = playerHeight * aspectRatio;
-
+      // Flicker logic
+      let flicker = false;
+      const now = Date.now();
+      if (flickerUntil > now) {
+        // Flicker every 100ms
+        flicker = Math.floor(now / 100) % 2 === 0;
+      }
+      ctx.save();
+      if (flicker) ctx.globalAlpha = 0.3;
       ctx.drawImage(
         playerImageRef.current,
         playerX - playerWidth / 2,
-        canvasSize.height - 60 - playerHeight / 2,
+        canvasSize.height - playerHeight,
         playerWidth,
         playerHeight
       );
+      ctx.globalAlpha = 1;
+      ctx.restore();
     } else {
       // Fallback to circle if image not loaded
       ctx.beginPath();
@@ -247,15 +312,20 @@ export default function GenericMinigame({
         const enemyHeight = enemy.size;
         const aspectRatio = enemyImageRef.current.width / enemyImageRef.current.height;
         const enemyWidth = enemyHeight * aspectRatio;
-
-        // Draw enemy image with custom size
+        // Spin angle based on time since spawn
+        const now = Date.now();
+        const spinAngle = (((now - enemy.spawnTime) % 2000) / 2000) * 2 * Math.PI;
+        ctx.save();
+        ctx.translate(enemy.x, enemy.y);
+        ctx.rotate(spinAngle);
         ctx.drawImage(
           enemyImageRef.current,
-          enemy.x - enemyWidth / 2,
-          enemy.y - enemyHeight / 2,
+          -enemyWidth / 2,
+          -enemyHeight / 2,
           enemyWidth,
           enemyHeight
         );
+        ctx.restore();
       } else {
         // Fallback to simple circle if image not loaded
         // Scale the circle size based on enemy size
@@ -271,18 +341,37 @@ export default function GenericMinigame({
     if (collectible && collectible.type) {
       const collectibleImg = collectibleImagesRef.current[collectible.type];
       if (collectibleImg) {
-        // Draw collectible image
-        const collectibleSize = 40;
+        // Draw boom image behind collectible (no spin)
+        const collectibleSize = 80;
         const aspectRatio = collectibleImg.width / collectibleImg.height;
         const collectibleWidth = collectibleSize * aspectRatio;
-
+        if (boomImageRef.current) {
+          ctx.save();
+          ctx.globalAlpha = 0.85;
+          ctx.drawImage(
+            boomImageRef.current,
+            collectible.x - (collectibleWidth * 1.5) / 2,
+            collectible.y - (collectibleSize * 1.5) / 2,
+            collectibleWidth * 1.5,
+            collectibleSize * 1.5
+          );
+          ctx.globalAlpha = 1;
+          ctx.restore();
+        }
+        // Draw collectible image with spin animation
+        const now = Date.now();
+        const spinAngle = (((now - collectible.spawnTime) % 2000) / 2000) * 2 * Math.PI;
+        ctx.save();
+        ctx.translate(collectible.x, collectible.y);
+        ctx.rotate(spinAngle);
         ctx.drawImage(
           collectibleImg,
-          collectible.x - collectibleWidth / 2,
-          collectible.y - collectibleSize / 2,
+          -collectibleWidth / 2,
+          -collectibleSize / 2,
           collectibleWidth,
           collectibleSize
         );
+        ctx.restore();
       } else {
         // Fallback circle if image not loaded
         ctx.beginPath();
@@ -292,11 +381,30 @@ export default function GenericMinigame({
       }
     }
 
-    // Game instruction text
-    ctx.fillStyle = '#333';
-    ctx.font = Math.floor(canvasSize.width / 40) + 'px avenir';
-    ctx.fillText(theme.instructionText, 10, 100);
-  }, [enemies, playerX, collectible, selectedCharacter, canvasSize]);
+    // Point Item
+    if (pointItem && pointItem.type) {
+      const pointImg = pointItemImagesRef.current[pointItem.type];
+      if (pointImg) {
+        // Draw point item image with spin animation
+        const pointSize = 80;
+        const aspectRatio = pointImg.width / pointImg.height;
+        const pointWidth = pointSize * aspectRatio;
+        // Spin angle based on time since spawn
+        const now = Date.now();
+        const spinAngle = (((now - pointItem.spawnTime) % 2000) / 2000) * 2 * Math.PI;
+        ctx.save();
+        ctx.translate(pointItem.x, pointItem.y);
+        ctx.rotate(spinAngle);
+        ctx.drawImage(pointImg, -pointWidth / 2, -pointSize / 2, pointWidth, pointSize);
+        ctx.restore();
+      } else {
+        ctx.beginPath();
+        ctx.arc(pointItem.x, pointItem.y, 20, 0, 2 * Math.PI);
+        ctx.fillStyle = '#4caf50';
+        ctx.fill();
+      }
+    }
+  }, [enemies, playerX, collectible, selectedCharacter, canvasSize, pointItem]);
 
   // Game loop with background scrolling
   useEffect(() => {
@@ -307,7 +415,7 @@ export default function GenericMinigame({
       if (backgroundImageRef.current) {
         const { width: imgW, height: imgH } = backgroundImageRef.current;
         const scale = canvasSize.height / imgH;
-        const scaledWidth = imgW * scale;
+        const scaledWidth = Math.ceil(imgW * scale);
 
         // Increment offset by 1px each frame and reset when a full image width has been scrolled
         bgOffsetRef.current = (bgOffsetRef.current + 1) % scaledWidth;
@@ -322,6 +430,7 @@ export default function GenericMinigame({
           .filter((enemy) => enemy.y < canvasSize.height + 50)
       );
       setCollectible((c) => (c ? { ...c, y: c.y + 2 } : c));
+      setPointItem((c) => (c ? { ...c, y: c.y + 2 } : c));
       animationRef.current = requestAnimationFrame(loop);
     }
     animationRef.current = requestAnimationFrame(loop);
@@ -331,16 +440,20 @@ export default function GenericMinigame({
   // Collision detection & win/lose
   useEffect(() => {
     if (!running || !canvasSize.width) return;
+    // Calculate player feet Y for accurate collision
+    const playerHeight = playerImageRef.current && selectedCharacter ? canvasSize.height * 0.23 : 0;
+    const playerFeetY = canvasSize.height - playerHeight;
     // Enemies
     if (!lifeLost) {
       for (const enemy of enemies) {
         const dx = enemy.x - playerX;
-        const dy = enemy.y - (canvasSize.height - 60);
+        const dy = enemy.y - playerFeetY;
         // Adjust collision radius based on enemy size
         const enemyCollisionRadius = enemy.size / 4; // Approximate collision radius based on visual size
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < PLAYER_RADIUS + enemyCollisionRadius) {
           setLifeLost(true);
+          setFlickerUntil(Date.now() + 1000); // Flicker for 1 second
           loseHeart();
           if (hearts - 1 <= 0) {
             setRunning(false);
@@ -356,7 +469,7 @@ export default function GenericMinigame({
     // Collectible
     if (collectible) {
       const dx = collectible.x - playerX;
-      const dy = collectible.y - (canvasSize.height - 60);
+      const dy = collectible.y - playerFeetY;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < PLAYER_RADIUS + 20) {
         gainHeart();
@@ -365,7 +478,20 @@ export default function GenericMinigame({
         setCollectible(null);
       }
     }
-    if (Date.now() - startTime.current > gameDuration) {
+    // Point Item
+    if (pointItem) {
+      const dx = pointItem.x - playerX;
+      const dy = pointItem.y - playerFeetY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < PLAYER_RADIUS + 20) {
+        setScore((s) => s + 1);
+        setPointItem(null);
+      } else if (pointItem.y > canvasSize.height + 20) {
+        setPointItem(null);
+      }
+    }
+    // Win condition: 10 points
+    if (score >= 10) {
       setRunning(false);
       setTimeout(onWin, 400);
     }
@@ -383,6 +509,9 @@ export default function GenericMinigame({
     lifeLost,
     canvasSize,
     gameDuration,
+    selectedCharacter,
+    pointItem,
+    score,
   ]);
 
   return (
@@ -398,6 +527,7 @@ export default function GenericMinigame({
         cursor: 'none',
       }}
     >
+      <HUD minigameScore={score} minigameInstruction={theme.instructionText} />
       <canvas
         ref={canvasRef}
         width={canvasSize.width}

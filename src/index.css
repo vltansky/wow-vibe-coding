@@ -2,24 +2,13 @@
 @import 'tw-animate-css';
 
 @font-face {
-  font-family: 'Kanisah';
-  src: url('/kanisah/Kanisah.ttf') format('truetype');
+  font-family: 'Avenir';
   font-weight: normal;
   font-style: normal;
   font-display: swap;
 }
 
 @custom-variant dark (&:is(.dark *));
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  overflow: hidden;
-}
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);

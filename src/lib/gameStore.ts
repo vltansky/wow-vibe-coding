@@ -2,7 +2,7 @@ import create from 'zustand';
 
 export type GameState = 'welcome' | 'map' | 'transition' | 'minigame' | 'gameover' | 'victory';
 
-export type CharacterId = 'nimrod' | 'liat' | 'reuven' | 'nevorish' | 'mom';
+export type CharacterId = 'nimrod' | 'liat' | 'reuven' | 'josef' | 'hila';
 
 export type Neighborhood =
   | 'Florentin'

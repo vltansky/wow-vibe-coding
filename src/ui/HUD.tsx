@@ -6,7 +6,12 @@ const tempHeartIcon = '💛';
 const hummusIcon = '🥣';
 const falafelIcon = '🥙';
 
-const HUD = () => {
+type HUDProps = {
+  minigameScore?: number;
+  minigameInstruction?: string;
+};
+
+const HUD = ({ minigameScore, minigameInstruction }: HUDProps) => {
   const filledPermanentHearts = useGameStore((s: GameStore) => s.filledPermanentHearts);
   const permanentHearts = useGameStore((s: GameStore) => s.permanentHearts);
   const temporaryHearts = useGameStore((s: GameStore) => s.temporaryHearts);
@@ -16,6 +21,16 @@ const HUD = () => {
 
   return (
     <div className="pointer-events-none absolute top-0 left-0 z-50 flex w-full flex-col items-center p-4">
+      {typeof minigameScore === 'number' && minigameInstruction && (
+        <div className="pointer-events-auto mb-4 flex flex-col items-center">
+          <div className="rounded bg-white/90 px-6 py-2 text-2xl font-bold text-gray-900 shadow">
+            {minigameInstruction}
+          </div>
+          <div className="mt-2 rounded bg-white/90 px-6 py-2 text-xl font-bold text-blue-700 shadow">
+            Score: {minigameScore}/10
+          </div>
+        </div>
+      )}
       <div className="pointer-events-auto mb-2 flex gap-2">
         {/* Permanent hearts (1-5) */}
         {Array.from({ length: permanentHearts }).map((_, i: number) =>

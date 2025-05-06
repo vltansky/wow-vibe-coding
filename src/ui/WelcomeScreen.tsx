@@ -22,14 +22,14 @@ const characters = [
     imagePath: '/YEMANI.PNG',
   },
   {
-    id: 'nevorish',
-    name: 'Nevorish from Old North',
+    id: 'josef',
+    name: 'Josef from Ramat Aviv',
     description: 'Slick real estate mogul with keys and phone',
     imagePath: '/NEVORISH.png',
   },
   {
-    id: 'mom',
-    name: 'Mom from Park Hamesila',
+    id: 'hila',
+    name: 'Hila from the Old North',
     description: 'Trendy mom with stroller and coffee',
     imagePath: '/MOM.png',
   },
@@ -58,14 +58,11 @@ export function WelcomeScreen() {
 
   return (
     <div className="relative flex min-h-screen flex-col items-center bg-gradient-to-br from-yellow-100 to-blue-200 p-6 pb-[120px]">
-      <h1
-        className="mt-24 mb-12 text-5xl font-bold"
-        style={{ fontFamily: 'Kanisah, sans-serif', padding: '25px' }}
-      >
+      <h1 className="mt-24 mb-12 text-5xl font-bold" style={{ fontFamily: 'Avenir, sans-serif' }}>
         Welcome to Tel Aviv Escape!
       </h1>
 
-      <p className="mb-24 max-w-xl text-center text-lg" style={{ padding: '25px' }}>
+      <p className="mb-24 max-w-xl text-center text-lg">
         Choose your player and get ready to explore Tel Aviv's quirkiest neighborhoods. Complete all
         areas to win a Wolt delivery! You have 5 hearts. Lose them all and it's game over. Collect
         hummus or falafel to restore hearts. Avoid enemies unique to each area. Good luck!
@@ -89,7 +86,7 @@ export function WelcomeScreen() {
             {/* Character name with Kanisah font */}
             <h3
               className="mt-6 text-center text-xl md:text-2xl"
-              style={{ fontFamily: 'Kanisah, sans-serif' }}
+              style={{ fontFamily: 'Avenir, sans-serif' }}
             >
               {char.name}
             </h3>

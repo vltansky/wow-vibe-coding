@@ -7,17 +7,21 @@ type TayeletMinigameProps = {
 
 // Old North theme with bicycles as enemies
 const TayeletTheme: MinigameTheme = {
-  enemyImage: '/sun.png', // This would be replaced with a bicycle image
+  enemyImage: '/matkot.png', // This would be replaced with a bicycle image
   collectibleImages: {
-    coffee: '/falafel.png', // This would be replaced with coffee image
-    croissant: '/falafel.png', // This would be replaced with croissant image
+    pita: '/pita.png',
+    falafel: '/falafel.png',
+  },
+  pointItems: {
+    coffee: '/hat.png',
+    sunscreen: '/sunscreen.png',
   },
   backgroundImage: '/beach_background.jpg', // Would be replaced with Old North street
-  instructionText: 'Avoid the sun and collect suncream and shimshiot!',
+  instructionText: 'Avoid the matkot and collect suncream and hats!',
   enemyMinSize: 60, // Bicycles are smaller than water drops
   enemyMaxSize: 120,
-  enemySpeed: 4, // Bicycles are faster than water drops
-  enemySpawnInterval: 1200, // But spawn less frequently
+  enemySpeed: 4.4, // 10% faster
+  enemySpawnInterval: 1080, // 10% less
   backgroundOverlayColor: 'rgba(240, 240, 250, 0.3)', // Slightly different overlay color
 };
 
