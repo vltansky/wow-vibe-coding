@@ -74,25 +74,25 @@ const HUD = ({
 
   return (
     <div
-      className={`pointer-events-none absolute top-0 left-0 z-50 flex w-full flex-col items-center gap-4 p-6 ${extraTopMargin ? 'mt-32 md:mt-40' : ''}`}
+      className={`retro-hud pointer-events-none absolute top-0 left-0 z-50 flex w-full flex-col items-center gap-4 p-6 ${extraTopMargin ? 'mt-32 md:mt-40' : ''}`}
     >
       {remainingTime !== undefined && <TimeWheel remainingTime={remainingTime} />}
       {neighborhoodName && (
-        <div className="pointer-events-auto mb-2 rounded bg-white/90 px-6 py-2 text-lg font-bold text-gray-900 shadow">
+        <div className="retro-hud-panel pointer-events-auto mb-2 rounded bg-white/90 px-6 py-2 text-lg font-bold text-gray-900 shadow">
           {neighborhoodName}
         </div>
       )}
       {typeof minigameScore === 'number' && minigameInstruction && (
         <div className="pointer-events-auto mb-6 flex flex-col items-center gap-2">
-          <div className="rounded bg-white/90 px-8 py-3 text-2xl font-bold text-gray-900 shadow">
+          <div className="retro-hud-panel rounded bg-white/90 px-8 py-3 text-2xl font-bold text-gray-900 shadow">
             {minigameInstruction}
           </div>
-          <div className="rounded bg-white/90 px-8 py-3 text-xl font-bold text-blue-700 shadow">
+          <div className="retro-hud-panel rounded bg-white/90 px-8 py-3 text-xl font-bold text-blue-700 shadow">
             Score: {minigameScore}/100
           </div>
         </div>
       )}
-      <div className="pointer-events-auto mb-4 flex gap-3">
+      <div className="retro-hud-panel pointer-events-auto mb-4 flex gap-3">
         {/* Permanent hearts (1-5) */}
         {Array.from({ length: 5 }).map((_, i: number) =>
           i < health.permanentHearts ? (
@@ -112,11 +112,17 @@ const HUD = ({
           </span>
         ))}
       </div>
-      <span className="mt-2 flex gap-2">
-        {collectedItems.map((item: Collectible, i: number) =>
-          item === 'hummus' ? <span key={i}>{hummusIcon}</span> : <span key={i}>{falafelIcon}</span>
-        )}
-      </span>
+      {collectedItems.length > 0 && (
+        <span className="retro-hud-panel mt-2 flex gap-2">
+          {collectedItems.map((item: Collectible, i: number) =>
+            item === 'hummus' ? (
+              <span key={i}>{hummusIcon}</span>
+            ) : (
+              <span key={i}>{falafelIcon}</span>
+            )
+          )}
+        </span>
+      )}
     </div>
   );
 };
