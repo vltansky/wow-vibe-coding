@@ -166,6 +166,20 @@ export function MapScreen() {
         .then((geojson) => {
           if (!isMounted) return;
 
+          // Color map for neighborhoods (high-contrast, varied)
+          const AREA_COLORS: Record<string, string> = {
+            Florentin: '#FF6B6B', // Vibrant Red
+            oldNorth: '#4ECDC4', // Teal
+            Kerem: '#FFD93D', // Bright Yellow
+            'Park Hamesila': '#1A936F', // Deep Green
+            Kaplan: '#FF6F91', // Pink
+            Rothschild: '#845EC2', // Purple
+            "Neve Sha'anan": '#FF9671', // Orange
+            tayelet: '#0081CF', // Blue
+            'Neve Tzedek': '#FFC75F', // Gold
+            memadion: '#B0A8B9', // Gray
+          };
+
           function style(feature?: { properties?: { name?: string } }) {
             const areaName = feature?.properties?.name;
             const isCompleted = areaName
@@ -184,8 +198,8 @@ export function MapScreen() {
             return {
               color: '#3388ff',
               weight: 2,
-              fillColor: 'transparent',
-              fillOpacity: 0,
+              fillColor: areaName && AREA_COLORS[areaName] ? AREA_COLORS[areaName] : '#e0e7ef',
+              fillOpacity: 0.45,
               className: 'pulse-polygon',
             };
           }

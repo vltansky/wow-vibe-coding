@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useGameStore } from '../lib/gameStore';
 
@@ -41,13 +41,6 @@ export function WelcomeScreen() {
   const [selected, setSelected] = useState<Character | null>(null);
   const setSelectedCharacter = useGameStore((s) => s.setSelectedCharacter);
   const setGameState = useGameStore((s) => s.setGameState);
-
-  // Set default selected character to first one
-  useEffect(() => {
-    if (!selected && characters.length > 0) {
-      setSelected(characters[0]);
-    }
-  }, []);
 
   const handleStart = () => {
     if (selected) {
