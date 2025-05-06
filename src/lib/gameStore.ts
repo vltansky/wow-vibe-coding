@@ -25,11 +25,13 @@ export type GameStore = {
   setSelectedCharacter: (id: CharacterId) => void;
   selectedNeighborhood: Neighborhood | null;
   setSelectedNeighborhood: (n: Neighborhood) => void;
-  permanentHearts: number; // always 5
-  filledPermanentHearts: number; // 0-5
-  temporaryHearts: number; // 0+
+  health: { permanentHearts: number; temporaryHearts: number };
   loseHeart: () => void;
   gainHeart: () => void;
+  score: number;
+  setScore: (score: number) => void;
+  minigameStartTime: number;
+  setMinigameStartTime: (startTime: number) => void;
   completedNeighborhoods: Neighborhood[];
   completeNeighborhood: (n: Neighborhood) => void;
   collectedItems: Collectible[];
@@ -37,6 +39,10 @@ export type GameStore = {
   reset: () => void;
   selectedMinigame: string | null;
   setSelectedMinigame: (minigame: string) => void;
+  isInvulnerable: boolean;
+  invulnerabilityEndTime: number;
+  setInvulnerable: (until: number) => void;
+  clearInvulnerable: () => void;
 };
 
 const PERMANENT_HEARTS = 5;
@@ -48,37 +54,29 @@ export const useGameStore = create<GameStore>((set) => ({
   setSelectedCharacter: (id) => set({ selectedCharacter: id }),
   selectedNeighborhood: null,
   setSelectedNeighborhood: (n) => set({ selectedNeighborhood: n }),
-  permanentHearts: PERMANENT_HEARTS,
-  filledPermanentHearts: PERMANENT_HEARTS,
-  temporaryHearts: 0,
+  health: { permanentHearts: PERMANENT_HEARTS, temporaryHearts: 0 },
   loseHeart: () =>
     set((s) => {
-      if (s.temporaryHearts > 0) {
-        return {
-          temporaryHearts: s.temporaryHearts - 1,
-          filledPermanentHearts: s.filledPermanentHearts,
-        };
+      if (s.health.temporaryHearts > 0) {
+        return { health: { ...s.health, temporaryHearts: s.health.temporaryHearts - 1 } };
       } else {
         return {
-          filledPermanentHearts: Math.max(0, s.filledPermanentHearts - 1),
-          temporaryHearts: s.temporaryHearts,
+          health: { ...s.health, permanentHearts: Math.max(0, s.health.permanentHearts - 1) },
         };
       }
     }),
   gainHeart: () =>
     set((s) => {
-      if (s.filledPermanentHearts < s.permanentHearts) {
-        return {
-          filledPermanentHearts: s.filledPermanentHearts + 1,
-          temporaryHearts: s.temporaryHearts,
-        };
+      if (s.health.permanentHearts < PERMANENT_HEARTS) {
+        return { health: { ...s.health, permanentHearts: s.health.permanentHearts + 1 } };
       } else {
-        return {
-          temporaryHearts: s.temporaryHearts + 1,
-          filledPermanentHearts: s.filledPermanentHearts,
-        };
+        return { health: { ...s.health, temporaryHearts: s.health.temporaryHearts + 1 } };
       }
     }),
+  score: 0,
+  setScore: (score) => set({ score }),
+  minigameStartTime: 0,
+  setMinigameStartTime: (startTime) => set({ minigameStartTime: startTime }),
   completedNeighborhoods: [],
   completeNeighborhood: (n) =>
     set((s) => ({ completedNeighborhoods: [...s.completedNeighborhoods, n] })),
@@ -89,12 +87,18 @@ export const useGameStore = create<GameStore>((set) => ({
       gameState: 'welcome',
       selectedCharacter: null,
       selectedNeighborhood: null,
-      permanentHearts: PERMANENT_HEARTS,
-      filledPermanentHearts: PERMANENT_HEARTS,
-      temporaryHearts: 0,
+      health: { permanentHearts: PERMANENT_HEARTS, temporaryHearts: 0 },
+      score: 0,
+      minigameStartTime: 0,
       completedNeighborhoods: [],
       collectedItems: [],
+      isInvulnerable: false,
+      invulnerabilityEndTime: 0,
     }),
   selectedMinigame: null,
   setSelectedMinigame: (minigame) => set({ selectedMinigame: minigame }),
+  isInvulnerable: false,
+  invulnerabilityEndTime: 0,
+  setInvulnerable: (until) => set({ isInvulnerable: true, invulnerabilityEndTime: until }),
+  clearInvulnerable: () => set({ isInvulnerable: false, invulnerabilityEndTime: 0 }),
 }));

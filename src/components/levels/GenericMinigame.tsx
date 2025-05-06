@@ -23,10 +23,7 @@ export type MinigameTheme = {
 };
 
 export type GenericMinigameProps = {
-  onWin: () => void;
-  onLose: () => void;
   theme: MinigameTheme;
-  gameDuration?: number; // in milliseconds
 };
 
 const PLAYER_RADIUS = 24;
@@ -39,12 +36,7 @@ const characterImages = {
   hila: '/MOM.png',
 };
 
-export default function GenericMinigame({
-  onWin,
-  onLose,
-  theme,
-  gameDuration = 20000, // Default 20 seconds
-}: GenericMinigameProps) {
+export default function GenericMinigame({ theme }: GenericMinigameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const [playerX, setPlayerX] = useState(0);
@@ -58,7 +50,6 @@ export default function GenericMinigame({
     spawnTime: number;
   } | null>(null);
   const [running, setRunning] = useState(true);
-  const [lifeLost, setLifeLost] = useState(false);
   const animationRef = useRef<number>();
   const playerImageRef = useRef<HTMLImageElement | null>(null);
   const enemyImageRef = useRef<HTMLImageElement | null>(null);
@@ -76,11 +67,24 @@ export default function GenericMinigame({
   const boomImageRef = useRef<HTMLImageElement | null>(null);
   const [flickerUntil, setFlickerUntil] = useState<number>(0);
 
-  const loseHeart = useGameStore((s) => s.loseHeart);
-  const gainHeart = useGameStore((s) => s.gainHeart);
-  const hearts = useGameStore((s) => s.filledPermanentHearts + s.temporaryHearts);
   const setGameState = useGameStore((s) => s.setGameState);
   const selectedCharacter = useGameStore((s) => s.selectedCharacter);
+  const health = useGameStore((s) => s.health);
+  const loseHeart = useGameStore((s) => s.loseHeart);
+  const gainHeart = useGameStore((s) => s.gainHeart);
+  const minigameStartTime = useGameStore((s) => s.minigameStartTime);
+  const setMinigameStartTime = useGameStore((s) => s.setMinigameStartTime);
+  const completeNeighborhood = useGameStore((s) => s.completeNeighborhood);
+  const selectedNeighborhood = useGameStore((s) => s.selectedNeighborhood);
+
+  // Add debug toggle state
+  const [debugHitboxes, setDebugHitboxes] = useState(false);
+
+  // Add invulnerability state from Zustand
+  const isInvulnerable = useGameStore((s) => s.isInvulnerable);
+  const invulnerabilityEndTime = useGameStore((s) => s.invulnerabilityEndTime);
+  const setInvulnerable = useGameStore((s) => s.setInvulnerable);
+  const clearInvulnerable = useGameStore((s) => s.clearInvulnerable);
 
   // Set canvas size to window size
   useEffect(() => {
@@ -237,6 +241,235 @@ export default function GenericMinigame({
     const timer = setTimeout(spawn, 3000);
     return () => clearTimeout(timer);
   }, [running, pointItem, canvasSize.width]);
+
+  // Listen for debug toggle key
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'd' || e.key === 'D') setDebugHitboxes((v) => !v);
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
+
+  // Helper: get AABB for player
+  function getPlayerRect() {
+    if (!playerImageRef.current || !selectedCharacter) {
+      // fallback circle
+      const size = PLAYER_RADIUS * 2;
+      return {
+        x: playerX - PLAYER_RADIUS,
+        y: canvasSize.height - 60 - PLAYER_RADIUS,
+        width: size,
+        height: size,
+      };
+    }
+    const playerHeight = canvasSize.height * 0.23;
+    const aspectRatio = playerImageRef.current.width / playerImageRef.current.height;
+    const playerWidth = playerHeight * aspectRatio;
+    return {
+      x: playerX - playerWidth / 2,
+      y: canvasSize.height - playerHeight,
+      width: playerWidth,
+      height: playerHeight,
+    };
+  }
+
+  // Helper: get AABB for enemy
+  function getEnemyRect(enemy: { x: number; y: number; size: number }) {
+    if (!enemyImageRef.current) {
+      const size = (enemy.size / 100) * 32;
+      return {
+        x: enemy.x - size / 2,
+        y: enemy.y - size / 2,
+        width: size,
+        height: size,
+      };
+    }
+    const enemyHeight = enemy.size;
+    const aspectRatio = enemyImageRef.current.width / enemyImageRef.current.height;
+    const enemyWidth = enemyHeight * aspectRatio;
+    return {
+      x: enemy.x - enemyWidth / 2,
+      y: enemy.y - enemyHeight / 2,
+      width: enemyWidth,
+      height: enemyHeight,
+    };
+  }
+
+  // Helper: get AABB for collectible/point item
+  function getItemRect(item: { x: number; y: number }) {
+    const size = 80;
+    return {
+      x: item.x - size / 2,
+      y: item.y - size / 2,
+      width: size,
+      height: size,
+    };
+  }
+
+  // AABB collision check
+  function rectsOverlap(
+    a: { x: number; y: number; width: number; height: number },
+    b: { x: number; y: number; width: number; height: number }
+  ) {
+    return (
+      a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
+    );
+  }
+
+  // Set minigame start time on mount
+  useEffect(() => {
+    setMinigameStartTime(Date.now());
+  }, [setMinigameStartTime]);
+
+  // Timer logic
+  const [remainingTime, setRemainingTime] = useState(30);
+  useEffect(() => {
+    if (!running) return;
+    const interval = setInterval(() => {
+      const elapsed = (Date.now() - minigameStartTime) / 1000;
+      setRemainingTime(Math.max(0, 30 - elapsed));
+    }, 100);
+    return () => clearInterval(interval);
+  }, [minigameStartTime, running]);
+
+  // End minigame after 30s
+  useEffect(() => {
+    if (!running) return;
+    if (remainingTime <= 0) {
+      setRunning(false);
+      // Score threshold
+      if (score >= 100 && selectedNeighborhood) {
+        completeNeighborhood(selectedNeighborhood);
+      }
+      setTimeout(() => setGameState('map'), 400);
+    }
+  }, [remainingTime, running, score, completeNeighborhood, selectedNeighborhood, setGameState]);
+
+  // Game over if permanentHearts = 0
+  useEffect(() => {
+    if (health.permanentHearts <= 0) {
+      setRunning(false);
+      setTimeout(() => setGameState('gameover'), 400);
+    }
+  }, [health.permanentHearts, setGameState]);
+
+  // Unified collision check
+  function checkCollisions() {
+    const playerRect = getPlayerRect();
+    // Enemy collisions
+    if (!isInvulnerable) {
+      for (const enemy of enemies) {
+        const enemyRect = getEnemyRect(enemy);
+        if (rectsOverlap(playerRect, enemyRect)) {
+          console.log('Enemy collision!');
+          setInvulnerable(Date.now() + 750);
+          setFlickerUntil(Date.now() + 750);
+          loseHeart();
+          return;
+        }
+      }
+    }
+    // Collectible
+    if (collectible) {
+      const itemRect = getItemRect(collectible);
+      if (rectsOverlap(playerRect, itemRect)) {
+        console.log('Collectible collision!');
+        gainHeart();
+        setCollectible(null);
+      } else if (collectible.y > canvasSize.height + 20) {
+        setCollectible(null);
+      }
+    }
+    // Point Item
+    if (pointItem) {
+      const itemRect = getItemRect(pointItem);
+      if (rectsOverlap(playerRect, itemRect)) {
+        console.log('Point item collision!');
+        setScore(score + 10);
+        setPointItem(null);
+      } else if (pointItem.y > canvasSize.height + 20) {
+        setPointItem(null);
+      }
+    }
+  }
+
+  // Invulnerability timer (fix: use animation frame loop)
+  useEffect(() => {
+    let raf: number | undefined;
+    function checkInvuln() {
+      if (isInvulnerable && invulnerabilityEndTime && Date.now() >= invulnerabilityEndTime) {
+        clearInvulnerable();
+      } else {
+        raf = requestAnimationFrame(checkInvuln);
+      }
+    }
+    if (isInvulnerable) {
+      raf = requestAnimationFrame(checkInvuln);
+    }
+    return () => {
+      if (raf !== undefined) cancelAnimationFrame(raf);
+    };
+  }, [isInvulnerable, invulnerabilityEndTime, clearInvulnerable]);
+
+  // Main collision check in game loop
+  useEffect(() => {
+    if (!running || !canvasSize.width) return;
+    checkCollisions();
+  }, [
+    enemies,
+    playerX,
+    running,
+    collectible,
+    loseHeart,
+    setScore,
+    health,
+    canvasSize,
+    pointItem,
+    score,
+    isInvulnerable,
+  ]);
+
+  // Draw debug outlines
+  useEffect(() => {
+    if (!debugHitboxes || !canvasRef.current) return;
+    const ctx = canvasRef.current.getContext('2d');
+    if (!ctx) return;
+    // Player
+    const playerRect = getPlayerRect();
+    ctx.save();
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(playerRect.x, playerRect.y, playerRect.width, playerRect.height);
+    ctx.restore();
+    // Enemies
+    for (const enemy of enemies) {
+      const enemyRect = getEnemyRect(enemy);
+      ctx.save();
+      ctx.strokeStyle = 'blue';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(enemyRect.x, enemyRect.y, enemyRect.width, enemyRect.height);
+      ctx.restore();
+    }
+    // Collectible
+    if (collectible) {
+      const itemRect = getItemRect(collectible);
+      ctx.save();
+      ctx.strokeStyle = 'green';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(itemRect.x, itemRect.y, itemRect.width, itemRect.height);
+      ctx.restore();
+    }
+    // Point Item
+    if (pointItem) {
+      const itemRect = getItemRect(pointItem);
+      ctx.save();
+      ctx.strokeStyle = 'orange';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(itemRect.x, itemRect.y, itemRect.width, itemRect.height);
+      ctx.restore();
+    }
+  }, [debugHitboxes, enemies, collectible, pointItem, playerX, canvasSize, selectedCharacter]);
 
   // Draw
   useEffect(() => {
@@ -437,83 +670,6 @@ export default function GenericMinigame({
     return () => animationRef.current && cancelAnimationFrame(animationRef.current);
   }, [running, canvasSize.width, canvasSize.height, theme.enemySpeed]);
 
-  // Collision detection & win/lose
-  useEffect(() => {
-    if (!running || !canvasSize.width) return;
-    // Calculate player feet Y for accurate collision
-    const playerHeight = playerImageRef.current && selectedCharacter ? canvasSize.height * 0.23 : 0;
-    const playerFeetY = canvasSize.height - playerHeight;
-    // Enemies
-    if (!lifeLost) {
-      for (const enemy of enemies) {
-        const dx = enemy.x - playerX;
-        const dy = enemy.y - playerFeetY;
-        // Adjust collision radius based on enemy size
-        const enemyCollisionRadius = enemy.size / 4; // Approximate collision radius based on visual size
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < PLAYER_RADIUS + enemyCollisionRadius) {
-          setLifeLost(true);
-          setFlickerUntil(Date.now() + 1000); // Flicker for 1 second
-          loseHeart();
-          if (hearts - 1 <= 0) {
-            setRunning(false);
-            setTimeout(() => setGameState('gameover'), 400);
-          } else {
-            setRunning(false);
-            setTimeout(onLose, 400);
-          }
-          return;
-        }
-      }
-    }
-    // Collectible
-    if (collectible) {
-      const dx = collectible.x - playerX;
-      const dy = collectible.y - playerFeetY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < PLAYER_RADIUS + 20) {
-        gainHeart();
-        setCollectible(null);
-      } else if (collectible.y > canvasSize.height + 20) {
-        setCollectible(null);
-      }
-    }
-    // Point Item
-    if (pointItem) {
-      const dx = pointItem.x - playerX;
-      const dy = pointItem.y - playerFeetY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < PLAYER_RADIUS + 20) {
-        setScore((s) => s + 1);
-        setPointItem(null);
-      } else if (pointItem.y > canvasSize.height + 20) {
-        setPointItem(null);
-      }
-    }
-    // Win condition: 10 points
-    if (score >= 10) {
-      setRunning(false);
-      setTimeout(onWin, 400);
-    }
-  }, [
-    enemies,
-    playerX,
-    onWin,
-    onLose,
-    running,
-    collectible,
-    gainHeart,
-    loseHeart,
-    hearts,
-    setGameState,
-    lifeLost,
-    canvasSize,
-    gameDuration,
-    selectedCharacter,
-    pointItem,
-    score,
-  ]);
-
   return (
     <div
       style={{
@@ -527,7 +683,12 @@ export default function GenericMinigame({
         cursor: 'none',
       }}
     >
-      <HUD minigameScore={score} minigameInstruction={theme.instructionText} />
+      <HUD
+        minigameScore={score}
+        minigameInstruction={theme.instructionText}
+        remainingTime={remainingTime}
+        neighborhoodName={selectedNeighborhood || undefined}
+      />
       <canvas
         ref={canvasRef}
         width={canvasSize.width}
